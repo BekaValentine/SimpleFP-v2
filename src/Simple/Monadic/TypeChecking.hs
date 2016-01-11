@@ -178,7 +178,7 @@ infer (In (Case ms cs)) =
 -- The judgment 'Γ ⊢ C : A* clause B' is defined as follows:
 --
 -- @
---    m = n   Γ' ⊢ Pi pattern Ai   Γ, Γ' ⊢ M ⇐ B true
+--    m = n   Pi pattern Ai ⇝ Γ'   Γ, Γ' ⊢ M ⇐ B true
 --    -----------------------------------------------
 --      Γ ⊢ cls(P0,...,Pm; M) : A0,...,An clause B
 -- @
@@ -256,18 +256,18 @@ check m t
 
 
 
--- | Type checking for patterns corresponds to the judgment 'Γ ⊢ P pattern A',
+-- | Type checking for patterns corresponds to the judgment 'P pattern A ⇝ Γ',
 -- where 'Γ' is an output context.
 --
--- The judgment 'Γ ⊢ P pattern A' is defined inductively as follows:
+-- The judgment 'P pattern A ⇝ Γ' is defined inductively as follows:
 --
 -- @
 --    ------------------------
---    x : A true ⊢ x pattern A
+--    x pattern A ⇝ x : A true
 --
---    Σ ∋ c con (A0,...,An)B   Γi ⊢ Pi pattern Ai
+--    Σ ∋ c con (A0,...,An)B   Pi pattern Ai ⇝ Γi
 --    -------------------------------------------
---      Γ0,...,Γn ⊢ con[c](P0;...;Pn) pattern B
+--      con[c](P0;...;Pn) pattern B ⇝ Γ0,...,Γn
 -- @
 
 checkPattern :: Pattern -> Type -> Elaborator Context
