@@ -50,7 +50,7 @@ typeInSignature n
 
 
 -- | We can get the type of a declared name by looking in the definitions.
--- This corresponds to the judgment 'Δ ∋ n : A true'
+-- This corresponds to the judgment 'Δ ∋ n : A'
 
 typeInDefinitions :: String -> Elaborator Type
 typeInDefinitions x
@@ -116,9 +116,9 @@ isType (In (Meta _)) =
 --    -------------- variable
 --    Γ ⊢ x ⇒ A true
 --
---    Δ ∋ x : A true
---    -------------- definition
---    Γ ⊢ x ⇒ A true
+--           Δ ∋ n : A
+--    ----------------------- definition
+--    Γ ⊢ defined[n] ⇒ A true
 --
 --      Γ ⊢ M ⇐ A true
 --    ------------------ annotation
