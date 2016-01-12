@@ -32,15 +32,13 @@ import Control.Monad.Except
 -- | We can add a new defined value declaration given a name, term, and type.
 
 addDeclaration :: String -> Term -> Type -> Elaborator ()
-addDeclaration n def ty = do defs <- definitions
-                             putDefinitions ((n,(def,ty)) : defs)
+addDeclaration n def ty = addElab definitions [(n,(def,ty))]
 
 
 -- | We can add a new type constructor by giving a name.
 
 addTypeConstructor :: String -> Elaborator ()
-addTypeConstructor n = do Signature tycons consigs <- signature
-                          putSignature (Signature (n:tycons) consigs)
+addTypeConstructor n = addElab (signature.typeConstructors) [n]
 
 
 -- | We can add a new data constructor by given a type constructor name, a
@@ -49,9 +47,8 @@ addTypeConstructor n = do Signature tycons consigs <- signature
 
 addConstructor :: String -> String -> [Type] -> Elaborator ()
 addConstructor tycon n args
-  = do Signature tycons consigs <- signature
-       let consig = ConSig args (In (TyCon tycon))
-       putSignature (Signature tycons ((n,consig):consigs))
+  = do let consig = ConSig args (In (TyCon tycon))
+       addElab (signature.dataConstructors) [(n,consig)]
 
 
 
@@ -80,7 +77,8 @@ elabTermDecl (TermDeclaration n ty def0)
        when' (typeInDefinitions n)
            $ throwError ("Term already defined: " ++ n)
        isType ty
-       extendDefinitions [(n,(def,ty))] (check def ty)
+       extendElab definitions [(n,(def,ty))]
+         $ check def ty
        addDeclaration n def ty
 elabTermDecl (WhereDeclaration n ty preclauses)
   = case preclauses of

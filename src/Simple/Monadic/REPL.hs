@@ -8,7 +8,6 @@ import Utils.ABT
 import Utils.Env
 import Utils.Eval
 import Utils.Pretty
-import Simple.Core.ConSig
 import Simple.Core.Evaluation ()
 import Simple.Core.Parser
 import Simple.Core.Term

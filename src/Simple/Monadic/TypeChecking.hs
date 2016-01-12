@@ -33,7 +33,7 @@ import Control.Monad.Except
 
 tyconExists :: String -> Elaborator ()
 tyconExists n
-  = do Signature tycons _ <- signature
+  = do tycons <- getElab (signature.typeConstructors)
        unless (n `elem` tycons)
          $ throwError $ "Unknown type constructor: " ++ n
 
@@ -43,7 +43,7 @@ tyconExists n
 
 typeInSignature :: String -> Elaborator ConSig
 typeInSignature n
-  = do Signature _ consigs <- signature
+  = do consigs <- getElab (signature.dataConstructors)
        case lookup n consigs of
          Nothing -> throwError $ "Unknown constructor: " ++ n
          Just t  -> return t
@@ -54,7 +54,7 @@ typeInSignature n
 
 typeInDefinitions :: String -> Elaborator Type
 typeInDefinitions x
-  = do defs <- definitions
+  = do defs <- getElab definitions
        case lookup x defs of
          Nothing    -> throwError $ "Unknown constant/defined term: " ++ x
          Just (_,t) -> return t
@@ -65,7 +65,7 @@ typeInDefinitions x
 
 typeInContext :: FreeVar -> Elaborator Type
 typeInContext v@(FreeVar n)
-  = do ctx <- context
+  = do ctx <- getElab context
        case lookup v ctx of
          Nothing -> throwError $ "Unbound free variable: " ++ n
          Just t -> return t
@@ -97,8 +97,6 @@ isType (Var _) =
 isType (In (TyCon n)) = tyconExists n
 isType (In (Fun a b)) = do isType (instantiate0 a)
                            isType (instantiate0 b)
-isType (In (Meta _)) =
-  error "Type metavariables should not be present in the this type checker."
 
 
 
@@ -142,6 +140,8 @@ infer (Var (Bound _ _)) =
   error "A bound variable should never be the subject of type inference."
 infer (Var (Free x)) =
   typeInContext x
+infer (Var (Meta _ _)) =
+  error "Metavariables should not occur in this type checker."
 infer (In (Defined n)) =
   typeInDefinitions n
 infer (In (Ann m t)) =
@@ -190,14 +190,14 @@ inferClause patTys (Clause pscs sc)
          $ throwError $ "Mismatching number of patterns. Expected "
                      ++ show (length patTys)
                      ++ " but found " ++ show lps
-       ns <- freshVars (names sc)
+       ns <- freshRelTo (names sc) context
        let xs1 = map (Var . Free) ns
            xs2 = map (Var . Free) ns
        ctx' <- fmap concat
                  $ zipWithM checkPattern
                             (map (\p -> instantiate p xs1) pscs)
                             patTys
-       extendContext ctx'
+       extendElab context ctx'
          $ infer (instantiate sc xs2)
 
 
@@ -238,8 +238,8 @@ inferClauses patTys cs
 
 check :: Term -> Type -> Elaborator ()
 check (In (Lam sc)) (In (Fun arg ret))
-  = do [n] <- freshVars (names sc)
-       extendContext [(n, instantiate0 arg)]
+  = do [n] <- freshRelTo (names sc) context
+       extendElab context [(n, instantiate0 arg)]
          $ check (instantiate sc [Var (Free n)])
                  (instantiate0 ret)
 check (In (Lam sc)) t
@@ -275,6 +275,8 @@ checkPattern (Var (Bound _ _)) _
   = error "A bound variable should never be the subject of type checking."
 checkPattern (Var (Free x)) t
   = return [(x,t)]
+checkPattern (Var (Meta _ _)) _ =
+  error "Metavariables should not occur in this type checker."
 checkPattern (In (ConPat c ps)) t
   = do ConSig args ret <- typeInSignature c
        let lps = length ps

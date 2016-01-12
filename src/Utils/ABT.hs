@@ -22,6 +22,7 @@ module Utils.ABT where
 
 import Utils.Vars
 
+import qualified Data.Foldable as F (foldl')
 import Data.List (elemIndex)
 
 
@@ -86,6 +87,7 @@ instance Eq (f (Scope f)) => Eq (ABT f) where
 data Variable
   = Free FreeVar
   | Bound String BoundVar
+  | Meta String MetaVar
   deriving (Show)
 
 
@@ -94,6 +96,7 @@ data Variable
 name :: Variable -> String
 name (Free (FreeVar n)) = n
 name (Bound n _)        = n
+name (Meta n _)         = n
 
 
 -- | Equality of variables is by the parts which identify them, so names for
@@ -102,6 +105,7 @@ name (Bound n _)        = n
 instance Eq Variable where
   Free x    == Free y    = x == y
   Bound _ i == Bound _ j = i == j
+  Meta _ m  == Meta _ n  = m == n
   _         == _         = False
 
 
@@ -502,3 +506,51 @@ freeToDefinedScope :: (Functor f, Foldable f)
                    => (String -> ABT f) -> Scope f -> Scope f
 freeToDefinedScope d (Scope ns _ b) =
   Scope ns [] (freeToDefined d b)
+
+
+
+
+
+
+
+-- * Operations with Metavariables
+
+
+
+-- | Just as free variables can be substituted for, metasvariables can too.
+-- Since metavariables are in some sense always free, their substitution is
+-- much simpler.
+
+substMetas :: (Functor f, Foldable f) => [(MetaVar, ABT f)] -> ABT f -> ABT f
+substMetas [] x = x
+substMetas subs (Var (Meta n m)) =
+  case lookup m subs of
+    Nothing -> Var (Meta n m)
+    Just x -> x
+substMetas _ (Var v) =
+  Var v
+substMetas subs (In x) =
+  In (fmap (substMetasScope subs) x)
+
+
+-- | We need to also be able to substitute metavariables in scopes.
+
+substMetasScope :: (Functor f, Foldable f)
+                => [(MetaVar, ABT f)] -> Scope f -> Scope f
+substMetasScope subs sc = substMetas subs `under` sc
+
+
+-- | We can perform occurs checks on ABTs by using the generic ABT fold.
+
+occurs :: (Functor f, Foldable f) => MetaVar -> ABT f -> Bool
+occurs m x = fold ocAlgV ocAlgRec ocAlgSc x
+  where
+    ocAlgV :: Variable -> Bool
+    ocAlgV (Meta _ m') = m == m'
+    ocAlgV _ = False
+    
+    ocAlgRec :: Foldable f => f Bool -> Bool
+    ocAlgRec = F.foldl' (&&) True
+    
+    ocAlgSc :: Int -> Bool -> Bool
+    ocAlgSc _ b = b

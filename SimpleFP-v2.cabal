@@ -21,6 +21,7 @@ library
   -- other-extensions:    
   build-depends:       base,
                        containers,
+                       lens,
                        mtl,
                        parsec,
                        transformers

@@ -16,7 +16,6 @@ module Simple.Core.Type where
 
 import Utils.ABT
 import Utils.Pretty
-import Utils.Vars
 
 
 
@@ -29,7 +28,6 @@ import Utils.Vars
 data TypeF r
   = TyCon String
   | Fun r r
-  | Meta MetaVar
   deriving (Eq,Functor,Foldable)
 
 
@@ -44,25 +42,6 @@ tyConH c = In (TyCon c)
 
 funH :: Type -> Type -> Type
 funH a b = In (Fun (scope [] a) (scope [] b))
-
-metaH :: MetaVar -> Type
-metaH v = In (Meta v)
-
-
--- | Metas can be instantiated via substitution
-
-instantiateMetas :: (MetaVar -> Maybe Type) -> Type -> Type
-instantiateMetas _ (Var v) =
-  Var v
-instantiateMetas _ (In (TyCon c)) =
-  In (TyCon c)
-instantiateMetas f (In (Fun a b)) =
-  In (Fun (instantiateMetas f `under` a)
-          (instantiateMetas f `under` b))
-instantiateMetas f (In (Meta v)) =
-  case f v of
-    Nothing -> In (Meta v)
-    Just t -> t
 
 
 
@@ -84,13 +63,13 @@ instance Parens Type where
   parenLoc (Var _)        = [FunLeft,FunRight]
   parenLoc (In (TyCon _)) = [FunLeft,FunRight]
   parenLoc (In (Fun _ _)) = [FunRight]
-  parenLoc (In (Meta _))  = [FunLeft,FunRight]
-
-  parenRec (Var v)        = name v
+  
+  parenRec (Var (Meta n _))
+    = "?" ++ n
+  parenRec (Var v)
+    = name v
   parenRec (In (TyCon c)) = c
   parenRec (In (Fun a b)) =
     parenthesize (Just FunLeft) (instantiate0 a)
       ++ " -> "
       ++ parenthesize (Just FunRight) (instantiate0 b)
-  parenRec (In (Meta (MetaVar i))) =
-    "?" ++ show i

@@ -1,4 +1,5 @@
 {-# OPTIONS -Wall #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
 
 
@@ -11,16 +12,31 @@
 
 module Simple.Monadic.Elaborator where
 
-import Utils.Elaborator
 import Utils.Env
 import Utils.Vars
 import Simple.Core.ConSig
 import Simple.Core.Term
 import Simple.Core.Type
 
+import qualified Control.Lens as L
 import Control.Monad.State
 
 
+
+
+
+
+
+-- | A signature is a collection of type constructors, and data constructors
+-- together with their constructor signatures. This is used during type
+-- checking and elaboration to define the underlying type theory.
+
+data Signature
+  = Signature
+    { _typeConstructors :: [String]
+    , _dataConstructors :: [(String,ConSig)]
+    }
+L.makeLenses ''Signature
 
 
 
@@ -39,7 +55,7 @@ definitionsToEnvironment defs
 
 
 
--- A context contains generated variables together with their display names,
+-- | A context contains generated variables together with their display names,
 -- and their declared types.
 
 type Context = [(FreeVar,Type)]
@@ -48,37 +64,17 @@ type Context = [(FreeVar,Type)]
 
 
 
--- The definition of the state to be carried by the type checking monad for
--- this particular variant.
+-- | The definition of the state to be carried by the type checking monad for
+-- this particular variant. We need only the bare minimum of a signature,
+-- some defined terms, and a typing context.
 
 data ElabState
   = ElabState
-    { elabSig :: Signature
-    , elabDefs :: Definitions
-    , elabCtx :: Context
+    { _signature :: Signature
+    , _definitions :: Definitions
+    , _context :: Context
     }
-
-
-instance ElaboratorState ElabState where
-  type Sig ElabState = Signature
-  type Defs ElabState = Definitions
-  type Ctx ElabState = Context
-  
-  elaboratorSig = elabSig
-  putElaboratorSig sig s = s { elabSig = sig }
-  addElaboratorSig (Signature eTycons eConSigs) s =
-    s { elabSig = Signature (tycons ++ eTycons) (conSigs ++ eConSigs) }
-    where Signature tycons conSigs = elabSig s
-  
-  elaboratorDefs = elabDefs
-  putElaboratorDefs defs s = s { elabDefs = defs }
-  addElaboratorDefs edefs s = s { elabDefs = edefs ++ elabDefs s }
-  
-  elaboratorCtx = elabCtx
-  putElaboratorCtx ctx s = s { elabCtx = ctx }
-  addElaboratorCtx ectx s = s { elabCtx = ectx ++ elabCtx s }
-  
-  contextNames s = [ n | (FreeVar n,_) <- elabCtx s ]
+L.makeLenses ''ElabState
 
 
 type Elaborator a = StateT ElabState (Either String) a
