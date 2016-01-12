@@ -8,7 +8,7 @@
 
 -- | This module defines how elaboration of programs is performed.
 
-module Simple.Monadic.Elaboration where
+module Simple.Unification.Elaboration where
 
 import Utils.ABT
 import Utils.Elaborator
@@ -17,8 +17,8 @@ import Simple.Core.ConSig
 import Simple.Core.Term
 import Simple.Core.Type
 import Simple.Core.Program
-import Simple.Monadic.Elaborator
-import Simple.Monadic.TypeChecking
+import Simple.Unification.Elaborator
+import Simple.Unification.TypeChecking
 
 import Control.Monad.Except
 

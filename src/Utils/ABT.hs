@@ -12,11 +12,11 @@
 -- an intermediate type 'Scope' for representing (possibly empty) binders.
 -- For uniformity, every argument to a construct is a 'Scope', even args that
 -- normally aren't seen as scopes. For example, whereas normally you might
--- expect that a pair has the form 'pair(M;N)' (using the PFPL notation),
--- with these ABTs, it has the form 'pair([].M;[].N)' where the pair elements
--- are binders with an empty list of bound variables. This avoids the need to
--- make two different types available to the class of constructions, one for
--- terms and one for scopes.
+-- expect that a pair has the form @pair(M;N)@ (using the PFPL notation), with
+-- these ABTs, it has the form @pair([].M;[].N)@ where the pair elements are
+-- binders with an empty list of bound variables. This avoids the need to make
+-- two different types available to the class of constructions, one for terms
+-- and one for scopes.
 
 module Utils.ABT where
 
@@ -40,9 +40,9 @@ import Data.List (elemIndex)
 -- constructors for the type of interest. In this sense, then, the subset
 -- of elements that have no variables and non-binding 'Scope's is just a
 -- kind of least fixed point, in the F-algebra sense. The addition of
--- variables and scopes simply introduces new constructors in the right
--- places to represent binding. It's similar to 'Free' for the free monad
--- construction, but the variable parameter is fixed to be 'Variable'.
+-- variables and scopes simply introduces new constructions in the right
+-- places to represent binding. It's similar to the free monad construction,
+-- but the variable parameter is fixed to be 'Variable'.
 --
 -- The particular choices for 'f' can be simple polynomial functors, such as
 -- 
@@ -53,11 +53,11 @@ import Data.List (elemIndex)
 --
 -- > data LC a = ... | Con String [a] | Case a [(Pattern, a)]
 --
--- which has constructed data (eg 'Con "True" []' for 'True'), as well as
+-- which has constructed data (eg @Con "True" []@ for @True@), as well as
 -- case expressions with a list of clauses, represented by pairs of patterns
 -- and associated clause bodies.
 --
--- The choice to represent ABTs this way was to make this kind of
+-- The choice to represent ABTs as functors was to make this kind of
 -- representation possible, without simultaneously forcing every kind of
 -- construct (lists, clauses, etc.) into the ABT type.
 
@@ -87,7 +87,7 @@ instance Eq (f (Scope f)) => Eq (ABT f) where
 data Variable
   = Free FreeVar
   | Bound String BoundVar
-  | Meta String MetaVar
+  | Meta MetaVar
   deriving (Show)
 
 
@@ -96,7 +96,7 @@ data Variable
 name :: Variable -> String
 name (Free (FreeVar n)) = n
 name (Bound n _)        = n
-name (Meta n _)         = n
+name (Meta _)           = error "Metavariables to not have names."
 
 
 -- | Equality of variables is by the parts which identify them, so names for
@@ -105,17 +105,17 @@ name (Meta n _)         = n
 instance Eq Variable where
   Free x    == Free y    = x == y
   Bound _ i == Bound _ j = i == j
-  Meta _ m  == Meta _ n  = m == n
+  Meta m    == Meta n    = m == n
   _         == _         = False
 
 
 
 
 
--- | A 'Scope f' is a list of bound variable names used for both display
+-- | A @Scope f@ is a list of bound variable names used for both display
 -- purposes and to track how many bound variables there are, along with a
--- 'ABT f' for the body of the scope. a value 'Scope ["x","y"] m' corresponds
--- to a PFPL scope of the form 'x,y.m'
+-- @ABT f@ for the body of the scope. a value @Scope ["x","y"] m@ corresponds
+-- to a PFPL scope of the form @x,y.m@
 
 data Scope f
   = Scope
@@ -199,36 +199,36 @@ freeVars = fold fvAlgV fvAlgRec fvAlgSc
 
 
 -- | The 'shift' function appropriately increments a term's free variables,
--- to handle substitution under binders. Any 'Bound' variable inside a term
+-- to handle substitution under binders. Any bound variable inside a term
 -- that gets substituted under a binder needs to still point to its own
--- binder higher up, or else it'll be captured. The 'l' argument of 'shift'
+-- binder higher up, or else it'll be captured. The @l@ argument of 'shift'
 -- represents how many bound variables in the substituted term the 'shift' has
--- passed under, while the 'i' represents how many new bound variables there
--- are in the scope that's being substituted into. We use 'l-1' in the
--- condition because if there are 'l' many bound vars, than the index for the
--- binders are the numbers in the range [0,l-1], so any bound var above that
+-- passed under, while the @i@ represents how many new bound variables there
+-- are in the scope that's being substituted into. We use @l-1@ in the
+-- condition because if there are @l@ many bound vars, than the index for the
+-- binders are the numbers in the range @[0..l-1]@, so any bound var above that
 -- range points to a higher binder.
 --
--- For example, consider the function term '\x. (\y.\z.y) x'. This can
--- be normalized to '\x -> \z -> x' by beta reducing the inner application.
--- To do this, we need to substitute 'x' for 'y' in '\z -> y'. But 'x' is a
+-- For example, consider the function term @λx. (λy.λz.y) x@. This can
+-- be normalized to @λx.λz.x@ by beta reducing the inner application.
+-- To do this, we need to substitute @x@ for @y@ in @λz.y@. But @x@ is a
 -- bound variable, bound by the outer lambda, so we need to avoid capture, by
 -- shifting it appropriately. With de Bruijn indices, want to turn the term
--- '\.(\.\.1)0' into the term '\.\.1'. The index for 'x' has to shift from '0'
--- to '1' because it's being used under the binder for 'z'. This is what the
--- 'i' argument to 'shift' represents.
+-- @λ.(λ.λ.1)0@ into the term @λ.λ.1@. The index for @x@ has to shift from @0@
+-- to @1@ because it's being used under the binder for @z@. This is what the
+-- @i@ argument to 'shift' represents.
 --
--- Similarly, if we had also put a binder around 'x', as in the term
--- '\x. (\y.\z.y) (\w.x)' we need to track that as well. This should normalize
--- to '\x.\z.\w.x'. With de Bruijn indices, '\. (\.\.1) (\.1)' should become
--- the term '\.\.\.2'. The variable 'x' initially was coded as '1', but shifts
--- to '2', as expected. However, if we had normalized '\x. (\y.\z.y) (\w.w)'
--- which with de Bruijn indexes is '\. (\.\.1) (\.0)', we expect to get back
--- '\x.\z.\w.w' which with de Bruin indexes is '\.\.\.0'. Notice that although
--- the variable 'w' corresponds to the index '0', the 'shift' function must
+-- Similarly, if we had also put a binder around @x@, as in the term
+-- @λx. (λy.λz.y) (λw.x)@ we need to track that as well. This should normalize
+-- to @λx.λz.λw.x@. With de Bruijn indices, @λ. (λ.λ.1) (λ.1)@ should become
+-- the term @λ.λ.λ.2@. The variable @x@ initially was coded as @1@, but shifts
+-- to @2@, as expected. However, if we had normalized @λx. (λy.λz.y) (λw.w)@
+-- which with de Bruijn indexes is @λ. (λ.λ.1) (λ.0)@, we expect to get back
+-- @λx.λz.λw.w@ which with de Bruin indexes is @λ.λ.λ.0@. Notice that although
+-- the variable @w@ corresponds to the index @0@, the 'shift' function must
 -- leave it unchanged. So not all bound variables are shifted, only those that
 -- were bound outside of any new binders that 'shift' passes under. This is
--- what the variable 'l' represents in 'shift'.
+-- what the variable @l@ represents in 'shift'.
 
 shift :: Functor f => Int -> Int -> ABT f -> ABT f
 shift l i (Var (Bound n (BoundVar v))) | v > l-1 =
@@ -240,7 +240,7 @@ shift l i (In x) = In (fmap (shiftScope l i) x)
 
 -- | When shifting a scope, we keep track of the number of new variables that
 -- are brought into scope, so the number of variables bound by the scope is
--- added to the current value of 'l' in the recursive call.
+-- added to the current value of @l@ in the recursive call.
 
 shiftScope :: Functor f => Int -> Int -> Scope f -> Scope f
 shiftScope l i (Scope ns fns x) = Scope ns fns (shift (l+length ns) i x)
@@ -258,19 +258,19 @@ shiftScope l i (Scope ns fns x) = Scope ns fns (shift (l+length ns) i x)
 -- | Just as we need to shift, sometimes we also need to unshift. In this
 -- case, for evaluation under binders so that a variable bound outside its
 -- nearest binder still points appropriately. For example, consider
--- '\x. (\y.x) c', which corresponds to the de Bruijn term '\. (\.1) c'. If we
--- evaluate under the binder, we expect to get '\x.x' because '[c/y]x = x',
--- which is the de Bruijn term '\.0'. The index '1' in the original had to be
--- unshifted down to '0' because its enclosing binder was removed.
+-- @λx. (λy.x) c@, which corresponds to the de Bruijn term @λ. (λ.1) c@. If we
+-- evaluate under the binder, we expect to get @λx.x@ because @[c/y]x = x@,
+-- which is the de Bruijn term @λ.0@. The index @1@ in the original had to be
+-- unshifted down to @0@ because its enclosing binder was removed.
 --
--- In the function 'unshift', the argument 'l' indicates the number of bound
+-- In the function 'unshift', the argument @l@ indicates the number of bound
 -- variables that were in scope before the relevant outer scope was removed.
 -- This includes the original variables bound by the now-removed scope, and
 -- any variables bound by binders inside that scope that have been passed
 -- under by 'unshift'. A variable in the relevant range will be left
 -- un-altered, because either it's been instantiated out of existence or its
 -- binder is still present. A variable outside the range will be reduced by
--- 'i', which represents the number of variables bound by the now-removed
+-- @i@, which represents the number of variables bound by the now-removed
 -- binder.
 
 unshift :: Functor f => Int -> Int -> ABT f -> ABT f
@@ -283,7 +283,7 @@ unshift l i (In x) = In (fmap (unshiftScope l i) x)
 
 -- | When unshifting a scope, we keep track of the number of new variables
 -- that are brought into scope, so the number of variables bound by the scope
--- is added to the current value of 'l' in the recursive call.
+-- is added to the current value of @l@ in the recursive call.
 
 unshiftScope :: Functor f => Int -> Int -> Scope f -> Scope f
 unshiftScope l i (Scope ns fns x) = Scope ns fns (unshift (l+length ns) i x)
@@ -301,7 +301,7 @@ unshiftScope l i (Scope ns fns x) = Scope ns fns (unshift (l+length ns) i x)
 
 
 -- | We bind variables by replacing them with an appropriately named 'Bound'.
--- The argument 'l' tracks how many binders we've recursed under.
+-- The argument @l@ tracks how many binders we've recursed under.
 
 bind :: (Functor f, Foldable f) => Int -> [FreeVar] -> ABT f -> ABT f
 bind _ [] x = x
@@ -314,7 +314,7 @@ bind l ns (In x) = In (fmap (bindScope l ns) x)
 
 
 
--- | We also can bind scopes. As before, 'l' tracks new variables.
+-- | We also can bind scopes. As before, @l@ tracks new variables.
 
 bindScope :: (Functor f, Foldable f) => Int -> [FreeVar] -> Scope f -> Scope f
 bindScope _ [] sc = sc
@@ -370,7 +370,7 @@ unbindScope l ns (Scope ns' _ b) =
 
 
 
--- | A smart constructor that creates a 'Scope f' while also performing actual
+-- | A smart constructor that creates a @Scope f@ while also performing actual
 -- binding of free variables. This also calculates the remaining free
 -- variables in the body of the scope and stores them.
 
@@ -490,7 +490,7 @@ helperFold c xs n = foldr c n xs
 -- defined terms. To do this for a "complete" term, one which is about to be
 -- elaborated, we can replace all free variables in the term at once, by
 -- applying a function that wraps them with a supplied function. The function
--- should basically turn 'Free n' into 'In (Defined n)' or some equivalent
+-- should basically turn @Free n@ into @In (Defined n)@ or some equivalent
 -- term that represents the name of a defined term.
 
 freeToDefined :: (Functor f, Foldable f)
@@ -523,9 +523,9 @@ freeToDefinedScope d (Scope ns _ b) =
 
 substMetas :: (Functor f, Foldable f) => [(MetaVar, ABT f)] -> ABT f -> ABT f
 substMetas [] x = x
-substMetas subs (Var (Meta n m)) =
+substMetas subs (Var (Meta m)) =
   case lookup m subs of
-    Nothing -> Var (Meta n m)
+    Nothing -> Var (Meta m)
     Just x -> x
 substMetas _ (Var v) =
   Var v
@@ -546,11 +546,11 @@ occurs :: (Functor f, Foldable f) => MetaVar -> ABT f -> Bool
 occurs m x = fold ocAlgV ocAlgRec ocAlgSc x
   where
     ocAlgV :: Variable -> Bool
-    ocAlgV (Meta _ m') = m == m'
+    ocAlgV (Meta m') = m == m'
     ocAlgV _ = False
     
     ocAlgRec :: Foldable f => f Bool -> Bool
-    ocAlgRec = F.foldl' (&&) True
+    ocAlgRec = F.foldl' (||) False
     
     ocAlgSc :: Int -> Bool -> Bool
     ocAlgSc _ b = b

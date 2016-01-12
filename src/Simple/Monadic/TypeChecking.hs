@@ -29,7 +29,7 @@ import Control.Monad.Except
 
 
 -- | We can check that a type constructor exists by looking in the signature.
--- This corresponds to the judgment 'Σ ∋ n tycon'
+-- This corresponds to the judgment @Σ ∋ n tycon@
 
 tyconExists :: String -> Elaborator ()
 tyconExists n
@@ -39,7 +39,7 @@ tyconExists n
 
 
 -- | We can get the consig of a constructor by looking in the signature.
--- This corresponds to the judgment 'Σ ∋ n con S'
+-- This corresponds to the judgment @Σ ∋ n con S@
 
 typeInSignature :: String -> Elaborator ConSig
 typeInSignature n
@@ -50,7 +50,7 @@ typeInSignature n
 
 
 -- | We can get the type of a declared name by looking in the definitions.
--- This corresponds to the judgment 'Δ ∋ n : A'
+-- This corresponds to the judgment @Δ ∋ n : A@
 
 typeInDefinitions :: String -> Elaborator Type
 typeInDefinitions x
@@ -61,7 +61,7 @@ typeInDefinitions x
 
 
 -- | We can get the type of a generated variable by looking in the context.
--- This corresponds to the judgment 'Γ ∋ x : A true'
+-- This corresponds to the judgment @Γ ∋ x : A true@
 
 typeInContext :: FreeVar -> Elaborator Type
 typeInContext v@(FreeVar n)
@@ -74,12 +74,12 @@ typeInContext v@(FreeVar n)
 
 
 
--- | Type well-formedness corresponds to the judgment 'A type'. This throws a
+-- | Type well-formedness corresponds to the judgment @A type@. This throws a
 -- Haskell error if it encounters a variable because there should be no
 -- vars in this type checker. That would only be possible for types coming
 -- from outside the parser. Same for metavariables.
 --
--- The judgment 'A type' is defined inductively as follows:
+-- The judgment @A type@ is defined inductively as follows:
 --
 -- @
 --    Σ ∋ n tycon
@@ -102,12 +102,12 @@ isType (In (Fun a b)) = do isType (instantiate0 a)
 
 
 
--- | Type inference corresponds to the judgment 'Γ ⊢ M ⇒ A true'. This throws
+-- | Type inference corresponds to the judgment @Γ ⊢ M ⇒ A true@. This throws
 -- a Haskell error when trying to infer the type of a bound variable, because
 -- all bound variables should be replaced by generated variables during this
 -- part of type checking.
 --
--- The judgment 'Γ ⊢ M ⇒ A true' is defined inductively as follows:
+-- The judgment @Γ ⊢ M ⇒ A true@ is defined inductively as follows:
 --
 -- @
 --    Γ ∋ x : A true
@@ -172,10 +172,10 @@ infer (In (Case ms cs)) =
 
 
 -- | Type inference for clauses corresponds to the judgment
--- 'Γ ⊢ C : A* clause B' where 'A*' is an input list of types and 'B' is an
+-- @Γ ⊢ C : A* clause B@ where @A*@ is an input list of types and @B@ is an
 -- output type.
 --
--- The judgment 'Γ ⊢ C : A* clause B' is defined as follows:
+-- The judgment @Γ ⊢ C : A* clause B@ is defined as follows:
 --
 -- @
 --    m = n   Pi pattern Ai ⇝ Γ'   Γ, Γ' ⊢ M ⇐ B true
@@ -222,9 +222,9 @@ inferClauses patTys cs
 
 
 
--- | Type checking corresponds to the judgment 'Γ ⊢ M ⇐ A true'.
+-- | Type checking corresponds to the judgment @Γ ⊢ M ⇐ A true@.
 --
--- The judgment 'Γ ⊢ M ⇐ A true' is defined inductively as follows:
+-- The judgment @Γ ⊢ M ⇐ A true@ is defined inductively as follows:
 --
 -- @
 --    Γ, x : A true ⊢ M ⇐ B true
@@ -256,10 +256,10 @@ check m t
 
 
 
--- | Type checking for patterns corresponds to the judgment 'P pattern A ⇝ Γ',
--- where 'Γ' is an output context.
+-- | Type checking for patterns corresponds to the judgment @P pattern A ⇝ Γ@,
+-- where @Γ@ is an output context.
 --
--- The judgment 'P pattern A ⇝ Γ' is defined inductively as follows:
+-- The judgment @P pattern A ⇝ Γ@ is defined inductively as follows:
 --
 -- @
 --    ------------------------

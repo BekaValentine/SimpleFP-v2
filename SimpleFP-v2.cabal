@@ -16,7 +16,8 @@ extra-source-files:  README.md
 cabal-version:       >=1.10
 
 library
-  exposed-modules:     Simple.Monadic.REPL
+  exposed-modules:     Simple.Monadic.REPL,
+                       Simple.Unification.REPL
   -- other-modules:       
   -- other-extensions:    
   build-depends:       base,

@@ -73,6 +73,19 @@ extendElab l xs m = do oldXs <- getElab l
 
 
 
+-- | Given a lens that focuses on a numeric value, we can increment that value
+-- and get back the original. This is useful for name stores to generate
+-- globally unique names, for instance.
+
+nextElab :: (Num a, MonadState s m) => Lens' s a -> m a
+nextElab l = do i <- getElab l
+                putElab l (i+1)
+                return i
+
+
+
+
+
 -- | We can freshen variables relative to any context-like list.
 
 freshRelTo :: MonadState s m

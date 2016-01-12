@@ -9,6 +9,8 @@
 
 
 
+
+
 -- | The types of the simply typed lambda calculus w/ non-parametric user
 -- defined types (eg Bool, Nat).
 
@@ -16,6 +18,9 @@ module Simple.Core.Type where
 
 import Utils.ABT
 import Utils.Pretty
+import Utils.Vars
+
+
 
 
 
@@ -64,10 +69,8 @@ instance Parens Type where
   parenLoc (In (TyCon _)) = [FunLeft,FunRight]
   parenLoc (In (Fun _ _)) = [FunRight]
   
-  parenRec (Var (Meta n _))
-    = "?" ++ n
-  parenRec (Var v)
-    = name v
+  parenRec (Var (Meta (MetaVar n))) = "?" ++ show n
+  parenRec (Var v) = name v
   parenRec (In (TyCon c)) = c
   parenRec (In (Fun a b)) =
     parenthesize (Just FunLeft) (instantiate0 a)

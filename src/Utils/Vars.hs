@@ -1,4 +1,15 @@
+{-# OPTIONS -Wall #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
+
+
+
+
+
+
 module Utils.Vars where
+
+
 
 
 
@@ -8,7 +19,7 @@ module Utils.Vars where
 
 
 
--- A free variable is just a 'String' but we use a 'newtype' to prevent
+-- A free variable is just a 'String' but we use a @newtype@ to prevent
 -- accidentally using it for the wrong things.
 
 newtype FreeVar = FreeVar String
@@ -16,7 +27,7 @@ newtype FreeVar = FreeVar String
 
 
 
--- A bound variable is just an 'Int' but we use a 'newtype' to prevent
+-- A bound variable is just an 'Int' but we use a @newtype@ to prevent
 -- accidentally using it for the wrong things.
 
 newtype BoundVar = BoundVar Int
@@ -24,11 +35,11 @@ newtype BoundVar = BoundVar Int
 
 
 
--- | A meta variable is just an 'Int' but we use a 'newtype' to prevent
+-- | A meta variable is just an 'Int' but we use a @newtype@ to prevent
 -- accidentally using it for the wrong things.
 
 newtype MetaVar = MetaVar Int
-  deriving (Eq,Show)
+  deriving (Eq,Show,Num)
 
 
 

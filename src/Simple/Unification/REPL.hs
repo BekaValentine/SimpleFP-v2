@@ -3,7 +3,7 @@
 
 
 
-module Simple.Monadic.REPL where
+module Simple.Unification.REPL where
 
 import Control.Monad.Reader (runReaderT)
 
@@ -14,9 +14,9 @@ import Utils.Pretty
 import Simple.Core.Evaluation ()
 import Simple.Core.Parser
 import Simple.Core.Term
-import Simple.Monadic.Elaboration
-import Simple.Monadic.Elaborator
-import Simple.Monadic.TypeChecking
+import Simple.Unification.Elaboration
+import Simple.Unification.Elaborator
+import Simple.Unification.TypeChecking
 
 import System.IO
 
@@ -49,7 +49,7 @@ repl src0 = case loadProgram src0 of
     loadProgram :: String -> Either String (Signature,Definitions,Context,Env String Term)
     loadProgram src
       = do prog <- parseProgram src
-           (_,ElabState sig defs ctx) <- runElaborator0 (elabProgram prog)
+           (_,ElabState sig defs ctx _ _) <- runElaborator0 (elabProgram prog)
            let env = definitionsToEnvironment defs
            return (sig,defs,ctx,env)
     

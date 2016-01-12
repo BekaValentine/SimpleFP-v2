@@ -1,5 +1,6 @@
 data Nat = Zero | Suc Nat end
 
+
 let plus : Nat -> Nat -> Nat
   = \x -> \y ->
     case x of
@@ -7,6 +8,7 @@ let plus : Nat -> Nat -> Nat
     | Suc x' -> Suc (plus x' y)
     end
 end
+
 
 let plus' : Nat -> Nat -> Nat where
   | plus' Zero y = y

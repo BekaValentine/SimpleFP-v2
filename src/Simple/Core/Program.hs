@@ -20,7 +20,7 @@ import Data.List (intercalate)
 
 
 
--- | A program is just a series of statements.
+-- | A program is just a series of 'Statement's.
 
 newtype Program = Program [Statement]
 
@@ -31,7 +31,7 @@ instance Show Program where
 
 
 
--- | A statement is either a 'TypeDeclaration' or a 'TermDeclaration'.
+-- | A 'Statement' is either a 'TypeDeclaration' or a 'TermDeclaration'.
 
 data Statement
   = TyDecl TypeDeclaration
@@ -84,7 +84,7 @@ instance Show TermDeclaration where
 --
 -- > data Bool = True | False end
 --
--- Types with no constructors need no '=':
+-- Types with no constructors need no @=@:
 --
 -- > data Void end
 

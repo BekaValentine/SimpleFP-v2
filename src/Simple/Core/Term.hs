@@ -26,9 +26,9 @@ import Data.List (intercalate)
 
 
 
--- | There are five kinds of terms, an annotated term 'M : T', a lambda term
--- '\x -> M', an application term 'M N', a constructor term 'C M0 ... Mn', and
--- a case term 'case M0 || ... || Mn of p0 -> N0 | ... | pm -> Nm end'.
+-- | There are five kinds of terms, an annotated term @M : T@, a lambda term
+-- @\\x -> M@, an application term @M N@, a constructor term @C M0 ... Mn@, and
+-- a case term @case M0 || ... || Mn of p0* -> N0 | ... | pm* -> Nm end@.
 
 data TermF r
   = Defined String
@@ -98,8 +98,8 @@ conPatH c xs = In (ConPat c (map (scope []) xs))
 
 data TermParenLoc
   = AnnLeft
-  | LamBody | AppLeft | AppRight  -- ^ locations inside function-related terms
-  | ConArg | CaseArg | ClauseBody -- ^ locations inside constructors and case
+  | LamBody | AppLeft | AppRight
+  | ConArg | CaseArg | ClauseBody
   deriving (Eq)
 
 
@@ -123,7 +123,7 @@ instance Parens Term where
   parenLoc (In (Case _ _)) =
     [LamBody,ClauseBody]
 
-  parenRec (Var v) = --case v of { Bound _ i -> show i ; _ -> name v }
+  parenRec (Var v) =
     name v
   parenRec (In (Defined n)) = n
   parenRec (In (Ann m t)) =
