@@ -56,8 +56,7 @@ definitionsToEnvironment defs
 
 
 
--- | A context contains generated variables together with their display names,
--- and their declared types.
+-- | A context contains generated variables together with their types.
 
 type Context = [(FreeVar,Type)]
 
@@ -80,10 +79,10 @@ data ElabState
 L.makeLenses ''ElabState
 
 
-type Elaborator a = StateT ElabState (Either String) a
+type Elaborator = StateT ElabState (Either String)
 
 
-type TypeChecker a = Elaborator a
+type TypeChecker = Elaborator
 
 
 runElaborator :: Elaborator a

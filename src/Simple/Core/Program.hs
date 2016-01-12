@@ -101,4 +101,4 @@ instance Show TypeDeclaration where
    where
      showAlt :: String -> [Type] -> String
      showAlt c [] = c
-     showAlt c as = c ++ " " ++ intercalate " " (map pretty as)
+     showAlt c as = c ++ " " ++ unwords (map pretty as)

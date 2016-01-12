@@ -18,6 +18,7 @@ import Utils.ABT
 import Utils.Pretty
 import Utils.Unifier
 import Simple.Core.Type
+import Simple.Unification.Elaborator
 
 import Control.Monad.Except
 
@@ -29,7 +30,7 @@ import Control.Monad.Except
 
 -- | Equating terms by trivial structural equations.
 
-instance MonadError String m => MonadUnify TypeF m where
+instance MonadUnify TypeF Elaborator where
   equate (TyCon tycon1) (TyCon tycon2) =
     do unless (tycon1 == tycon2)
          $ throwError $ "Mismatching type constructors "
