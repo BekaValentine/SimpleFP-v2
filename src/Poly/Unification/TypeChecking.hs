@@ -232,10 +232,15 @@ inferify (In (Lam sc)) =
      return $ funH (substMetas subs arg) ret
 inferify (In (App f a)) =
   do t <- inferify (instantiate0 f)
-     In (Fun arg ret) <- instantiateQuantifiers t
-     checkify (instantiate0 a) (instantiate0 arg)
-     subs <- getElab substitution
-     return $ substMetas subs (instantiate0 ret)
+     t' <- instantiateQuantifiers t
+     case t' of
+       In (Fun arg ret) -> do
+         checkify (instantiate0 a) (instantiate0 arg)
+         subs <- getElab substitution
+         return $ substMetas subs (instantiate0 ret)
+       _ -> throwError $ "Expected a function type when checking"
+                      ++ " the expression: " ++ pretty (instantiate0 f)
+                      ++ "\nbut instead found: " ++ pretty t'
 inferify (In (Con c as)) =
   do ConSig argscs retsc <- typeInSignature c
      (args',ret') <- instantiateParams argscs retsc
@@ -316,6 +321,10 @@ inferifyClauses patTys cs =
 -- The judgment @Γ ⊢ M ⇐ A true@ is defined inductively as follows:
 --
 -- @
+--      Γ ⊢ M ⇐ [A/a]B true
+--    ------------------------ forall
+--    Γ ⊢ M ⇐ forall a. B true
+--
 --    Γ, x : A true ⊢ M ⇐ B true
 --    -------------------------- lambda
 --    Γ ⊢ lam(x.M) ⇐ A -> B true
@@ -323,10 +332,6 @@ inferifyClauses patTys cs =
 --    Γ ⊢ M ⇒ A' true   A = A'
 --    ------------------------ direction change
 --         Γ ⊢ M ⇐ A true
---
---      Γ ⊢ M ⇐ [A/a]B true
---    ------------------------
---    Γ ⊢ M ⇐ forall a. B true
 -- @
 
 checkify :: Term -> Type -> TypeChecker ()
@@ -334,9 +339,6 @@ checkify m (In (Forall sc)) =
   do [n] <- freshRelTo (names sc) context
      extendElab tyVarContext [n]
        $ checkify m (instantiate sc [Var (Free n)])
-checkify (Var x) t =
-  do t' <- inferify (Var x)
-     equivQuantifiers t' t
 checkify (In (Lam sc)) (In (Fun arg ret)) =
   do [n] <- freshRelTo (names sc) context
      extendElab context [(n, instantiate0 arg)]
@@ -348,11 +350,7 @@ checkify (In (Lam sc)) t =
             ++ "Against non-function type: " ++ pretty t
 checkify m t =
   do t' <- inferify m
-     catchError (unify substitution context t t') $ \e ->
-       throwError $ "Expected term: " ++ pretty m ++ "\n"
-                 ++ "To have type: " ++ pretty t ++ "\n"
-                 ++ "Instead found type: " ++ pretty t' ++ "\n"
-                 ++ "Unification failed with error: " ++ e
+     equivQuantifiers t' t
 
 
 

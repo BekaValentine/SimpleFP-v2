@@ -26,9 +26,7 @@ import Utils.Vars
 
 
 
--- | Types can be type constructors, functions, or meta-variables.
--- Meta-variable types are used for type checking with unification.
--- Variables are also not used in this setting, but we address them anyway.
+-- | Types can be type constructors, functions, foralls.
 
 data TypeF r
   = TyCon String [r]
