@@ -144,11 +144,7 @@ elabAlt n consig =
 -- which has the effect of accumulating data constructor signatures.
 
 elabAlts :: [(String, ConSig)] -> Elaborator ()
-elabAlts [] =
-  return ()
-elabAlts ((n,consig):cs) =
-  do elabAlt n consig
-     elabAlts cs
+elabAlts = mapM_ (uncurry elabAlt)
 
 
 
