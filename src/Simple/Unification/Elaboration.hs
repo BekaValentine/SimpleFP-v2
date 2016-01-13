@@ -45,10 +45,8 @@ addTypeConstructor n = addElab (signature.typeConstructors) [n]
 -- name for the data constructor, and a list of arg types from which to build
 -- a constructor signature.
 
-addConstructor :: String -> String -> [Type] -> Elaborator ()
-addConstructor tycon n args
-  = do let consig = ConSig args (In (TyCon tycon))
-       addElab (signature.dataConstructors) [(n,consig)]
+addConstructor :: String -> ConSig -> Elaborator ()
+addConstructor n consig = addElab (signature.dataConstructors) [(n,consig)]
 
 
 
@@ -72,37 +70,37 @@ addConstructor tycon n args
 -- where @Δ # x@ means that @x@ is not defined in @Δ@.
 
 elabTermDecl :: TermDeclaration -> Elaborator ()
-elabTermDecl (TermDeclaration n ty def0)
-  = do let def = freeToDefined (In . Defined) def0
-       when' (typeInDefinitions n)
-           $ throwError ("Term already defined: " ++ n)
-       isType ty
-       extendElab definitions [(n,(def,ty))]
-         $ check def ty
-       addDeclaration n def ty
-elabTermDecl (WhereDeclaration n ty preclauses)
-  = case preclauses of
-      [] -> throwError "Cannot create an empty let-where definition."
-      [(ps,xs,b)] | all isVarPat ps
-        -> elabTermDecl
-             (TermDeclaration
-                n
-                ty
-                (helperFold lamH xs b))
-      (ps0,_,_):_
-        -> let clauses = [ clauseH xs ps b
-                         | (ps,xs,b) <- preclauses
-                         ]
-               xs0 = [ "x" ++ show i | i <- [0..length ps0-1] ]
-           in elabTermDecl
-                (TermDeclaration
-                   n
-                   ty
-                   (helperFold
-                      lamH
-                      xs0
-                      (caseH (map (Var . Free . FreeVar) xs0) clauses)))
-   where
+elabTermDecl (TermDeclaration n ty def0) =
+  do let def = freeToDefined (In . Defined) def0
+     when' (typeInDefinitions n)
+         $ throwError ("Term already defined: " ++ n)
+     isType ty
+     extendElab definitions [(n,(def,ty))]
+       $ check def ty
+     addDeclaration n def ty
+elabTermDecl (WhereDeclaration n ty preclauses) =
+  case preclauses of
+    [] -> throwError "Cannot create an empty let-where definition."
+    [(ps,xs,b)] | all isVarPat ps
+      -> elabTermDecl
+           (TermDeclaration
+              n
+              ty
+              (helperFold lamH xs b))
+    (ps0,_,_):_
+      -> let clauses = [ clauseH xs ps b
+                       | (ps,xs,b) <- preclauses
+                       ]
+             xs0 = [ "x" ++ show i | i <- [0..length ps0-1] ]
+         in elabTermDecl
+              (TermDeclaration
+                 n
+                 ty
+                 (helperFold
+                    lamH
+                    xs0
+                    (caseH (map (Var . Free . FreeVar) xs0) clauses)))
+  where
     isVarPat :: Pattern -> Bool
     isVarPat (Var _) = True
     isVarPat _ = False
@@ -123,12 +121,12 @@ elabTermDecl (WhereDeclaration n ty preclauses)
 --
 -- where @Σ # c@ means that @c@ is not a data constructor in @Σ@.
 
-elabAlt :: String -> String -> [Type] -> Elaborator ()
-elabAlt tycon n args
-  = do when' (typeInSignature n)
-           $ throwError ("Constructor already declared: " ++ n)
-       mapM_ isType args
-       addConstructor tycon n args
+elabAlt :: String -> ConSig -> Elaborator ()
+elabAlt n consig =
+  do when' (typeInSignature n)
+       $ throwError ("Constructor already declared: " ++ n)
+     checkifyConSig consig
+     addConstructor n consig
 
 
 
@@ -145,12 +143,12 @@ elabAlt tycon n args
 --
 -- which has the effect of accumulating data constructor signatures.
 
-elabAlts :: String -> [(String, ConSig)] -> Elaborator ()
-elabAlts _ [] =
+elabAlts :: [(String, ConSig)] -> Elaborator ()
+elabAlts [] =
   return ()
-elabAlts tycon ((n,ConSig args _):cs) =
-  do elabAlt tycon n args
-     elabAlts tycon cs
+elabAlts ((n,consig):cs) =
+  do elabAlt n consig
+     elabAlts cs
 
 
 
@@ -168,11 +166,11 @@ elabAlts tycon ((n,ConSig args _):cs) =
 -- where here @Σ # c@ means that @c@ is not a type constructor in @Σ@.
 
 elabTypeDecl :: TypeDeclaration -> Elaborator ()
-elabTypeDecl (TypeDeclaration tycon alts)
-  = do when' (isType (tyConH tycon))
-           $ throwError ("Type constructor already declared: " ++ tycon)
-       addTypeConstructor tycon
-       elabAlts tycon alts
+elabTypeDecl (TypeDeclaration tycon alts) =
+  do when' (isType (tyConH tycon))
+       $ throwError ("Type constructor already declared: " ++ tycon)
+     addTypeConstructor tycon
+     elabAlts alts
 
 
 

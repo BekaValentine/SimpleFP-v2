@@ -34,43 +34,43 @@ import Control.Monad.State
 -- This corresponds to the judgment @Σ ∋ n tycon@
 
 tyconExists :: String -> TypeChecker ()
-tyconExists n
-  = do tycons <- getElab (signature.typeConstructors)
-       unless (n `elem` tycons)
-         $ throwError $ "Unknown type constructor: " ++ n
+tyconExists n =
+  do tycons <- getElab (signature.typeConstructors)
+     unless (n `elem` tycons)
+       $ throwError $ "Unknown type constructor: " ++ n
 
 
 -- | We can get the consig of a constructor by looking in the signature.
 -- This corresponds to the judgment @Σ ∋ n con S@
 
 typeInSignature :: String -> TypeChecker ConSig
-typeInSignature n
-  = do consigs <- getElab (signature.dataConstructors)
-       case lookup n consigs of
-         Nothing -> throwError $ "Unknown constructor: " ++ n
-         Just t  -> return t
+typeInSignature n =
+  do consigs <- getElab (signature.dataConstructors)
+     case lookup n consigs of
+       Nothing -> throwError $ "Unknown constructor: " ++ n
+       Just t  -> return t
 
 
 -- | We can get the type of a declared name by looking in the definitions.
 -- This corresponds to the judgment @Δ ∋ n : A@
 
 typeInDefinitions :: String -> TypeChecker Type
-typeInDefinitions n
-  = do defs <- getElab definitions
-       case lookup n defs of
-         Nothing -> throwError $ "Unknown constant/defined term: " ++ n
-         Just (_,t) -> return t
+typeInDefinitions n =
+  do defs <- getElab definitions
+     case lookup n defs of
+       Nothing -> throwError $ "Unknown constant/defined term: " ++ n
+       Just (_,t) -> return t
 
 
--- | We can get the type of a generated variable by looking in the context.
--- This corresponds to the judgment @Γ ∋ x : A true@
+-- | We can get the type of a free variable by looking in the context. This
+-- corresponds to the judgment @Γ ∋ x : A true@
 
 typeInContext :: FreeVar -> TypeChecker Type
-typeInContext x
-  = do ctx <- getElab context
-       case lookup x ctx of
-         Nothing -> throwError "Unbound automatically generated variable."
-         Just t -> return t
+typeInContext x@(FreeVar n) =
+  do ctx <- getElab context
+     case lookup x ctx of
+       Nothing -> throwError $ "Unbound variable: " ++ n
+       Just t -> return t
 
 
 
@@ -106,8 +106,8 @@ isType (In (Fun a b))  = do isType (instantiate0 a)
 
 -- | Type inference corresponds to the judgment @Γ ⊢ M ⇒ A true@. This throws
 -- a Haskell error when trying to infer the type of a bound variable, because
--- all bound variables should be replaced by generated variables during this
--- part of type checking.
+-- all bound variables should be replaced by free variables during this part
+-- of type checking.
 --
 -- The judgment @Γ ⊢ M ⇒ A true@ is defined inductively as follows:
 --
@@ -144,37 +144,37 @@ inferify (Var (Free x)) =
   typeInContext x
 inferify (Var (Meta _)) =
   error "Metavariables should not occur in this type checker."
-inferify (In (Defined x))
-  = typeInDefinitions x
-inferify (In (Ann m t))
-  = do checkify (instantiate0 m) t
-       return t
-inferify (In (Lam sc))
-  = do [n] <- freshRelTo (names sc) context
-       meta <- nextElab elabNextMeta
-       let arg = Var (Meta meta)
-       ret <- extendElab context [(n, arg)]
-                $ inferify (instantiate sc [Var (Free n)])
-       subs <- getElab substitution
-       return $ funH (substMetas subs arg) ret
-inferify (In (App f a))
-  = do In (Fun arg ret) <- inferify (instantiate0 f)
-       checkify (instantiate0 a) (instantiate0 arg)
-       subs <- getElab substitution
-       return (substMetas subs (instantiate0 ret))
-inferify (In (Con c as))
-  = do ConSig args ret <- typeInSignature c
-       let las = length as
-           largs = length args
-       unless (las == largs)
-         $ throwError $ c ++ " expects " ++ show largs ++ " "
-                   ++ (if largs == 1 then "arg" else "args")
-                   ++ " but was given " ++ show las
-       checkifyMulti (map instantiate0 as) args
-       return ret
-inferify (In (Case ms cs))
-  = do ts <- mapM (inferify.instantiate0) ms
-       inferifyClauses ts cs
+inferify (In (Defined x)) =
+  typeInDefinitions x
+inferify (In (Ann m t)) =
+  do checkify (instantiate0 m) t
+     return t
+inferify (In (Lam sc)) =
+  do [n] <- freshRelTo (names sc) context
+     meta <- nextElab nextMeta
+     let arg = Var (Meta meta)
+     ret <- extendElab context [(n, arg)]
+              $ inferify (instantiate sc [Var (Free n)])
+     subs <- getElab substitution
+     return $ funH (substMetas subs arg) ret
+inferify (In (App f a)) =
+  do In (Fun arg ret) <- inferify (instantiate0 f)
+     checkify (instantiate0 a) (instantiate0 arg)
+     subs <- getElab substitution
+     return $ substMetas subs (instantiate0 ret)
+inferify (In (Con c as)) =
+  do ConSig args ret <- typeInSignature c
+     let las = length as
+         largs = length args
+     unless (las == largs)
+       $ throwError $ c ++ " expects " ++ show largs ++ " "
+                 ++ (if largs == 1 then "arg" else "args")
+                 ++ " but was given " ++ show las
+     checkifyMulti (map instantiate0 as) args
+     return ret
+inferify (In (Case ms cs)) =
+  do ts <- mapM (inferify.instantiate0) ms
+     inferifyClauses ts cs
 
 
 
@@ -193,22 +193,22 @@ inferify (In (Case ms cs))
 -- @
 
 inferifyClause :: [Type] -> Clause -> TypeChecker Type
-inferifyClause patTys (Clause pscs sc)
-  = do let lps = length pscs
-       unless (length patTys == lps)
-         $ throwError $ "Mismatching number of patterns. Expected "
-                     ++ show (length patTys) ++ " but found " ++ show (lps)
-       ns <- freshRelTo (names sc) context
-       let xs1 = map (Var . Free) ns
-           xs2 = map (Var . Free) ns
-       ctx' <- forM ns $ \n -> do
-                 m <- nextElab elabNextMeta
-                 return (n,Var (Meta m))
-       extendElab context ctx' $ do
-         zipWithM_ checkifyPattern
-                   (map (\psc -> instantiate psc xs1) pscs)
-                   patTys
-         inferify (instantiate sc xs2)
+inferifyClause patTys (Clause pscs sc) =
+  do let lps = length pscs
+     unless (length patTys == lps)
+       $ throwError $ "Mismatching number of patterns. Expected "
+                   ++ show (length patTys) ++ " but found " ++ show (lps)
+     ns <- freshRelTo (names sc) context
+     let xs1 = map (Var . Free) ns
+         xs2 = map (Var . Free) ns
+     ctx' <- forM ns $ \n -> do
+               m <- nextElab nextMeta
+               return (n,Var (Meta m))
+     extendElab context ctx' $ do
+       zipWithM_ checkifyPattern
+                 (map (\psc -> instantiate psc xs1) pscs)
+                 patTys
+       inferify (instantiate sc xs2)
 
 
 
@@ -218,17 +218,17 @@ inferifyClause patTys (Clause pscs sc)
 -- least one clause to check, and that all clauses have the same result type.
 
 inferifyClauses :: [Type] -> [Clause] -> TypeChecker Type
-inferifyClauses patTys cs
-  = do ts <- mapM (inferifyClause patTys) cs
-       case ts of
-         [] -> throwError "Empty clauses."
-         t:ts' -> do
-           catchError (mapM_ (unify substitution context t) ts') $ \e ->
-             throwError $ "Clauses do not all return the same type:\n"
-                       ++ unlines (map pretty ts) ++ "\n"
-                       ++ "Unification failed with error: " ++ e
-           subs <- getElab substitution
-           return (substMetas subs t)
+inferifyClauses patTys cs =
+  do ts <- mapM (inferifyClause patTys) cs
+     case ts of
+       [] -> throwError "Empty clauses."
+       t:ts' -> do
+         catchError (mapM_ (unify substitution context t) ts') $ \e ->
+           throwError $ "Clauses do not all return the same type:\n"
+                     ++ unlines (map pretty ts) ++ "\n"
+                     ++ "Unification failed with error: " ++ e
+         subs <- getElab substitution
+         return (substMetas subs t)
 
 
 
@@ -249,20 +249,20 @@ inferifyClauses patTys cs
 -- @
 
 checkify :: Term -> Type -> TypeChecker ()
-checkify (In (Lam sc)) (In (Fun arg ret))
-  = do [n] <- freshRelTo (names sc) context
-       extendElab context [(n, instantiate0 arg)]
-         $ checkify (instantiate sc [Var (Free n)]) (instantiate0 ret)
-checkify (In (Lam sc)) t
-  = throwError $ "Cannot check term: " ++ pretty (In (Lam sc)) ++ "\n"
-              ++ "Against non-function type: " ++ pretty t
-checkify m t
-  = do t' <- inferify m
-       catchError (unify substitution context t t') $ \e ->
-         throwError $ "Expected term: " ++ pretty m ++ "\n"
-                   ++ "To have type: " ++ pretty t ++ "\n"
-                   ++ "Instead found type: " ++ pretty t' ++ "\n"
-                   ++ "Unification failed with error: " ++ e
+checkify (In (Lam sc)) (In (Fun arg ret)) =
+  do [n] <- freshRelTo (names sc) context
+     extendElab context [(n, instantiate0 arg)]
+       $ checkify (instantiate sc [Var (Free n)]) (instantiate0 ret)
+checkify (In (Lam sc)) t =
+  throwError $ "Cannot check term: " ++ pretty (In (Lam sc)) ++ "\n"
+            ++ "Against non-function type: " ++ pretty t
+checkify m t =
+  do t' <- inferify m
+     catchError (unify substitution context t t') $ \e ->
+       throwError $ "Expected term: " ++ pretty m ++ "\n"
+                 ++ "To have type: " ++ pretty t ++ "\n"
+                 ++ "Instead found type: " ++ pretty t' ++ "\n"
+                 ++ "Unification failed with error: " ++ e
 
 
 
@@ -326,13 +326,34 @@ checkifyPattern (In (ConPat c ps)) t =
 
 
 
+-- | Type checking of constructor signatures corresponds to the judgment
+-- @Γ ⊢ (A0;...;An)B consig@ which is defined as
+--
+-- @
+--    Γ ⊢ Ai type   Γ ⊢ B type
+--    ------------------------
+--        Γ ⊢ (A0;...;An)B
+-- @
+--
+-- Because of the ABT representation, however, the scope is pushed down inside
+-- the 'ConSig' constructor, onto its arguments.
+
+checkifyConSig :: ConSig -> TypeChecker ()
+checkifyConSig (ConSig args ret) =
+  do mapM_ isType args
+     isType ret
+
+
+
+
+
 -- | All metavariables have been solved when the next metavar to produces is
 -- the number of substitutions we've found.
 
 metasSolved :: TypeChecker ()
 metasSolved =
   do s <- get
-     unless (_elabNextMeta s == MetaVar (length (_substitution s)))
+     unless (_nextMeta s == MetaVar (length (_substitution s)))
        $ throwError "Not all metavariables have been solved."
 
 

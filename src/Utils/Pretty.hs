@@ -46,13 +46,13 @@ type Pretty a = (Parens a, Eq (Loc a))
 -- location, therefore requiring no parentheses.
 
 parenthesize :: Pretty a => Maybe (Loc a) -> a -> String
-parenthesize l x
-  = let rec = parenRec x
-    in case l of
-         Nothing -> rec
-         Just loc
-           | loc `elem` parenLoc x -> rec
-           | otherwise -> "(" ++ rec ++ ")"
+parenthesize l x =
+  let rec = parenRec x
+  in case l of
+       Nothing -> rec
+       Just loc
+         | loc `elem` parenLoc x -> rec
+         | otherwise -> "(" ++ rec ++ ")"
 
 
 pretty :: Pretty a => a -> String

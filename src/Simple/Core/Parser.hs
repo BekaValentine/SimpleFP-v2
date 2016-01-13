@@ -246,7 +246,7 @@ program = Program <$> many statement
 -- | A convenience function that will parse or return the parse error string.
 
 parseProgram :: String -> Either String Program
-parseProgram str
-  = case parse (spaces *> program <* eof) "(unknown)" str of
-      Left e -> Left (show e)
-      Right p -> Right p
+parseProgram str =
+  case parse (spaces *> program <* eof) "(unknown)" str of
+    Left e -> Left (show e)
+    Right p -> Right p

@@ -47,26 +47,26 @@ repl src0 = case loadProgram src0 of
                             (evalAndPrint sig defs ctx env)
   where
     loadProgram :: String -> Either String (Signature,Definitions,Context,Env String Term)
-    loadProgram src
-      = do prog <- parseProgram src
-           (_,ElabState sig defs ctx) <- runElaborator0 (elabProgram prog)
-           let env = definitionsToEnvironment defs
-           return (sig,defs,ctx,env)
+    loadProgram src =
+      do prog <- parseProgram src
+         (_,ElabState sig defs ctx) <- runElaborator0 (elabProgram prog)
+         let env = definitionsToEnvironment defs
+         return (sig,defs,ctx,env)
     
     loadTerm :: Signature -> Definitions -> Context -> Env String Term -> String -> Either String Term
-    loadTerm sig defs ctx env src
-      = do tm0 <- parseTerm src
-           let tm = freeToDefined (In . Defined) tm0
-           case runElaborator (infer tm) sig defs ctx of
-             Left e -> Left e
-             Right _ -> runReaderT (eval tm) env
+    loadTerm sig defs ctx env src =
+      do tm0 <- parseTerm src
+         let tm = freeToDefined (In . Defined) tm0
+         case runElaborator (infer tm) sig defs ctx of
+           Left e -> Left e
+           Right _ -> runReaderT (eval tm) env
     
     evalAndPrint :: Signature -> Definitions -> Context -> Env String Term -> String -> IO ()
     evalAndPrint _ _ _ _ "" = return ()
-    evalAndPrint sig defs ctx env src
-      = case loadTerm sig defs ctx env src of
-          Left e -> flushStr ("ERROR: " ++ e ++ "\n")
-          Right v -> flushStr (pretty v ++ "\n")
+    evalAndPrint sig defs ctx env src =
+      case loadTerm sig defs ctx env src of
+        Left e -> flushStr ("ERROR: " ++ e ++ "\n")
+        Right v -> flushStr (pretty v ++ "\n")
 
 replFile :: String -> IO ()
 replFile loc = readFile loc >>= repl

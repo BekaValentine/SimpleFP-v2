@@ -66,15 +66,15 @@ data TermDeclaration
   | WhereDeclaration String Type [([Pattern],[String],Term)]
 
 instance Show TermDeclaration where
-  show (TermDeclaration n ty def)
-    = "let " ++ n ++ " : " ++ pretty ty ++ " = " ++ pretty def ++ " end"
-  show (WhereDeclaration n ty preclauses)
-    = "let " ++ n ++ " : " ++ pretty ty ++ " where "
-        ++ intercalate " | " (map showPreclause preclauses)
+  show (TermDeclaration n ty def) =
+    "let " ++ n ++ " : " ++ pretty ty ++ " = " ++ pretty def ++ " end"
+  show (WhereDeclaration n ty preclauses) =
+    "let " ++ n ++ " : " ++ pretty ty ++ " where "
+      ++ intercalate " | " (map showPreclause preclauses)
     where
       showPreclause :: ([Pattern],[String],Term) -> String
-      showPreclause (ps,_,b)
-        = intercalate " || " (map pretty ps) ++ " -> " ++ pretty b
+      showPreclause (ps,_,b) =
+        intercalate " || " (map pretty ps) ++ " -> " ++ pretty b
 
 
 
@@ -92,12 +92,12 @@ data TypeDeclaration
   = TypeDeclaration String [(String,ConSig)]
 
 instance Show TypeDeclaration where
-  show (TypeDeclaration tycon [])
-    = "data " ++ tycon ++ " end"
-  show (TypeDeclaration tycon alts)
-    = "data " ++ tycon ++ " = "
-   ++ intercalate " | " [ showAlt c as | (c, ConSig as _) <- alts ]
-   ++ " end"
+  show (TypeDeclaration tycon []) =
+    "data " ++ tycon ++ " end"
+  show (TypeDeclaration tycon alts) =
+    "data " ++ tycon ++ " = "
+      ++ intercalate " | " [ showAlt c as | (c, ConSig as _) <- alts ]
+      ++ " end"
    where
      showAlt :: String -> [Type] -> String
      showAlt c [] = c

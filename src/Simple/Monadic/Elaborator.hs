@@ -48,8 +48,8 @@ L.makeLenses ''Signature
 type Definitions = [(String,(Term,Type))]
 
 definitionsToEnvironment :: Definitions -> Env String Term
-definitionsToEnvironment defs
-  = [ (x,m) | (x,(m,_)) <- defs ]
+definitionsToEnvironment defs =
+  [ (x,m) | (x,(m,_)) <- defs ]
 
 
 
@@ -88,8 +88,8 @@ runElaborator :: Elaborator a
               -> Definitions
               -> Context
               -> Either String (a,ElabState)
-runElaborator e sig defs ctx
-  = runStateT e (ElabState sig defs ctx)
+runElaborator e sig defs ctx =
+  runStateT e (ElabState sig defs ctx)
 
 
 runElaborator0 :: Elaborator a -> Either String (a,ElabState)

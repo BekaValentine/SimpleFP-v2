@@ -55,12 +55,12 @@ completeSubstitution :: (Functor f, Foldable f, MonadState s m)
                      => Lens' s (Substitution f)
                      -> Substitution f
                      -> m ()
-completeSubstitution subsl subs'
-  = do subs <- getElab subsl
-       let subs2 = subs' ++ subs
-           subs2' = nubBy (\(a,_) (b,_) -> a == b)
-                          (map (\(k,v) -> (k,substMetas subs2 v)) subs2)
-       putElab subsl subs2'
+completeSubstitution subsl subs' =
+  do subs <- getElab subsl
+     let subs2 = subs' ++ subs
+         subs2' = nubBy (\(a,_) (b,_) -> a == b)
+                        (map (\(k,v) -> (k,substMetas subs2 v)) subs2)
+     putElab subsl subs2'
 
 
 
@@ -73,10 +73,10 @@ substituteContext :: (Eq a, Functor f, Foldable f, MonadState s m)
                   => Lens' s (Substitution f)
                   -> Lens' s [(a, ABT f)]
                   -> m ()
-substituteContext subsl ctxl
-  = do ctx <- getElab ctxl
-       subs2 <- getElab subsl
-       putElab ctxl (map (\(x,t) -> (x,substMetas subs2 t)) ctx)
+substituteContext subsl ctxl =
+  do ctx <- getElab ctxl
+     subs2 <- getElab subsl
+     putElab ctxl (map (\(x,t) -> (x,substMetas subs2 t)) ctx)
 
 
 
@@ -90,9 +90,9 @@ updateSubstitution :: (Eq a, Functor f, Foldable f, MonadState s m)
                    -> Lens' s [(a,ABT f)]
                    -> Substitution f
                    -> m ()
-updateSubstitution subsl ctxl subs
-  = do completeSubstitution subsl subs
-       substituteContext subsl ctxl
+updateSubstitution subsl ctxl subs =
+  do completeSubstitution subsl subs
+     substituteContext subsl ctxl
     
 
 

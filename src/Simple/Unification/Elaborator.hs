@@ -49,8 +49,8 @@ L.makeLenses ''Signature
 type Definitions = [(String,(Term,Type))]
 
 definitionsToEnvironment :: Definitions -> Env String Term
-definitionsToEnvironment defs
-  = [ (x,m) | (x,(m,_)) <- defs ]
+definitionsToEnvironment defs =
+  [ (x,m) | (x,(m,_)) <- defs ]
 
 
 
@@ -74,7 +74,7 @@ data ElabState
     , _definitions :: Definitions
     , _context :: Context
     , _substitution :: Substitution TypeF
-    , _elabNextMeta :: MetaVar
+    , _nextMeta :: MetaVar
     }
 L.makeLenses ''ElabState
 
@@ -90,8 +90,8 @@ runElaborator :: Elaborator a
               -> Definitions
               -> Context
               -> Either String (a,ElabState)
-runElaborator e sig defs ctx
-  = runStateT e (ElabState sig defs ctx [] (MetaVar 0))
+runElaborator e sig defs ctx =
+  runStateT e (ElabState sig defs ctx [] (MetaVar 0))
 
 
 runElaborator0 :: Elaborator a -> Either String (a,ElabState)

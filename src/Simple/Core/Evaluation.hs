@@ -29,20 +29,20 @@ import Control.Monad.Except
 match :: Pattern -> Term -> Maybe [Term]
 match (Var _) v = Just [v]
 match (In (ConPat c ps)) (In (Con c' as))
-  | c == c' && length ps == length as
-  = fmap concat (zipWithM match (map body ps) (map body as))
+  | c == c' && length ps == length as =
+    fmap concat (zipWithM match (map body ps) (map body as))
 match _ _ = Nothing
 
 matchTerms :: [Pattern] -> [Term] -> Maybe [Term]
 matchTerms ps zs = fmap concat (zipWithM match ps zs)
 
 matchClauses :: [Clause] -> [Term] -> Maybe Term
-matchClauses [] _
-  = Nothing
-matchClauses (Clause pscs sc:cs) vs
-  = case matchTerms (map body pscs) vs of
-      Nothing -> matchClauses cs vs
-      Just xs -> Just (instantiate sc xs)
+matchClauses [] _ =
+  Nothing
+matchClauses (Clause pscs sc:cs) vs =
+  case matchTerms (map body pscs) vs of
+    Nothing -> matchClauses cs vs
+    Just xs -> Just (instantiate sc xs)
 
 
 

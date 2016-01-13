@@ -1,5 +1,4 @@
 {-# OPTIONS -Wall #-}
-{-# LANGUAGE TypeFamilies #-}
 
 
 
@@ -32,43 +31,43 @@ import Control.Monad.Except
 -- This corresponds to the judgment @Σ ∋ n tycon@
 
 tyconExists :: String -> Elaborator ()
-tyconExists n
-  = do tycons <- getElab (signature.typeConstructors)
-       unless (n `elem` tycons)
-         $ throwError $ "Unknown type constructor: " ++ n
+tyconExists n =
+  do tycons <- getElab (signature.typeConstructors)
+     unless (n `elem` tycons)
+       $ throwError $ "Unknown type constructor: " ++ n
 
 
 -- | We can get the consig of a constructor by looking in the signature.
 -- This corresponds to the judgment @Σ ∋ n con S@
 
 typeInSignature :: String -> Elaborator ConSig
-typeInSignature n
-  = do consigs <- getElab (signature.dataConstructors)
-       case lookup n consigs of
-         Nothing -> throwError $ "Unknown constructor: " ++ n
-         Just t  -> return t
+typeInSignature n =
+  do consigs <- getElab (signature.dataConstructors)
+     case lookup n consigs of
+       Nothing -> throwError $ "Unknown constructor: " ++ n
+       Just t  -> return t
 
 
 -- | We can get the type of a declared name by looking in the definitions.
 -- This corresponds to the judgment @Δ ∋ n : A@
 
 typeInDefinitions :: String -> Elaborator Type
-typeInDefinitions x
-  = do defs <- getElab definitions
-       case lookup x defs of
-         Nothing    -> throwError $ "Unknown constant/defined term: " ++ x
-         Just (_,t) -> return t
+typeInDefinitions x =
+  do defs <- getElab definitions
+     case lookup x defs of
+       Nothing    -> throwError $ "Unknown constant/defined term: " ++ x
+       Just (_,t) -> return t
 
 
--- | We can get the type of a generated variable by looking in the context.
--- This corresponds to the judgment @Γ ∋ x : A true@
+-- | We can get the type of a free variable by looking in the context. This
+-- corresponds to the judgment @Γ ∋ x : A true@
 
 typeInContext :: FreeVar -> Elaborator Type
-typeInContext v@(FreeVar n)
-  = do ctx <- getElab context
-       case lookup v ctx of
-         Nothing -> throwError $ "Unbound free variable: " ++ n
-         Just t -> return t
+typeInContext v@(FreeVar n) =
+  do ctx <- getElab context
+     case lookup v ctx of
+       Nothing -> throwError $ "Unbound variable: " ++ n
+       Just t -> return t
 
 
 
@@ -104,8 +103,8 @@ isType (In (Fun a b)) = do isType (instantiate0 a)
 
 -- | Type inference corresponds to the judgment @Γ ⊢ M ⇒ A true@. This throws
 -- a Haskell error when trying to infer the type of a bound variable, because
--- all bound variables should be replaced by generated variables during this
--- part of type checking.
+-- all bound variables should be replaced by free variables during this part
+-- of type checking.
 --
 -- The judgment @Γ ⊢ M ⇒ A true@ is defined inductively as follows:
 --
@@ -140,7 +139,7 @@ infer (Var (Bound _ _)) =
   error "A bound variable should never be the subject of type inference."
 infer (Var (Free x)) =
   typeInContext x
-infer (Var (Meta _ _)) =
+infer (Var (Meta _)) =
   error "Metavariables should not occur in this type checker."
 infer (In (Defined n)) =
   typeInDefinitions n
@@ -184,21 +183,21 @@ infer (In (Case ms cs)) =
 -- @
 
 inferClause :: [Type] -> Clause -> Elaborator Type
-inferClause patTys (Clause pscs sc)
-  = do let lps = length pscs
-       unless (length patTys == lps)
-         $ throwError $ "Mismatching number of patterns. Expected "
-                     ++ show (length patTys)
-                     ++ " but found " ++ show lps
-       ns <- freshRelTo (names sc) context
-       let xs1 = map (Var . Free) ns
-           xs2 = map (Var . Free) ns
-       ctx' <- fmap concat
-                 $ zipWithM checkPattern
-                            (map (\p -> instantiate p xs1) pscs)
-                            patTys
-       extendElab context ctx'
-         $ infer (instantiate sc xs2)
+inferClause patTys (Clause pscs sc) =
+  do let lps = length pscs
+     unless (length patTys == lps)
+       $ throwError $ "Mismatching number of patterns. Expected "
+                   ++ show (length patTys)
+                   ++ " but found " ++ show lps
+     ns <- freshRelTo (names sc) context
+     let xs1 = map (Var . Free) ns
+         xs2 = map (Var . Free) ns
+     ctx' <- fmap concat
+               $ zipWithM checkPattern
+                          (map (\p -> instantiate p xs1) pscs)
+                          patTys
+     extendElab context ctx'
+       $ infer (instantiate sc xs2)
 
 
 
@@ -208,15 +207,15 @@ inferClause patTys (Clause pscs sc)
 -- least one clause to check, and that all clauses have the same result type.
 
 inferClauses :: [Type] -> [Clause] -> Elaborator Type
-inferClauses patTys cs
-  = do ts <- mapM (inferClause patTys) cs
-       case ts of
-         [] -> throwError "Empty clauses."
-         t:ts'
-           | all (== t) ts' -> return t
-           | otherwise ->
-               throwError $ "Clauses do not all return the same type:\n"
-                         ++ unlines (map pretty ts)
+inferClauses patTys cs =
+  do ts <- mapM (inferClause patTys) cs
+     case ts of
+       [] -> throwError "Empty clauses."
+       t:ts'
+         | all (== t) ts' -> return t
+         | otherwise ->
+             throwError $ "Clauses do not all return the same type:\n"
+                       ++ unlines (map pretty ts)
 
 
 
@@ -237,20 +236,20 @@ inferClauses patTys cs
 -- @
 
 check :: Term -> Type -> Elaborator ()
-check (In (Lam sc)) (In (Fun arg ret))
-  = do [n] <- freshRelTo (names sc) context
-       extendElab context [(n, instantiate0 arg)]
-         $ check (instantiate sc [Var (Free n)])
-                 (instantiate0 ret)
-check (In (Lam sc)) t
-  = throwError $ "Cannot check term: " ++ pretty (In (Lam sc)) ++ "\n"
-              ++ "Against non-function type: " ++ pretty t
-check m t
-  = do t' <- infer m
-       unless (t == t')
-         $ throwError $ "Expected term: " ++ pretty m ++ "\n"
-                     ++ "To have type: " ++ pretty t ++ "\n"
-                     ++ "Instead found type: " ++ pretty t'
+check (In (Lam sc)) (In (Fun arg ret)) =
+  do [n] <- freshRelTo (names sc) context
+     extendElab context [(n, instantiate0 arg)]
+       $ check (instantiate sc [Var (Free n)])
+               (instantiate0 ret)
+check (In (Lam sc)) t =
+  throwError $ "Cannot check term: " ++ pretty (In (Lam sc)) ++ "\n"
+            ++ "Against non-function type: " ++ pretty t
+check m t =
+  do t' <- infer m
+     unless (t == t')
+       $ throwError $ "Expected term: " ++ pretty m ++ "\n"
+                   ++ "To have type: " ++ pretty t ++ "\n"
+                   ++ "Instead found type: " ++ pretty t'
 
 
 
@@ -271,19 +270,40 @@ check m t
 -- @
 
 checkPattern :: Pattern -> Type -> Elaborator Context
-checkPattern (Var (Bound _ _)) _
-  = error "A bound variable should never be the subject of type checking."
-checkPattern (Var (Free x)) t
-  = return [(x,t)]
-checkPattern (Var (Meta _ _)) _ =
+checkPattern (Var (Bound _ _)) _ =
+  error "A bound variable should never be the subject of type checking."
+checkPattern (Var (Free x)) t =
+  return [(x,t)]
+checkPattern (Var (Meta _)) _ =
   error "Metavariables should not occur in this type checker."
-checkPattern (In (ConPat c ps)) t
-  = do ConSig args ret <- typeInSignature c
-       let lps = length ps
-           largs = length args
-       unless (lps == largs && t == ret)
-         $ throwError $ c ++ " expects " ++ show largs ++ " "
-                   ++ (if largs == 1 then "arg" else "args")
-                   ++ " but was given " ++ show lps
-       rss <- zipWithM checkPattern (map instantiate0 ps) args
-       return $ concat rss
+checkPattern (In (ConPat c ps)) t =
+  do ConSig args ret <- typeInSignature c
+     let lps = length ps
+         largs = length args
+     unless (lps == largs && t == ret)
+       $ throwError $ c ++ " expects " ++ show largs ++ " "
+                 ++ (if largs == 1 then "arg" else "args")
+                 ++ " but was given " ++ show lps
+     rss <- zipWithM checkPattern (map instantiate0 ps) args
+     return $ concat rss
+
+
+
+
+
+-- | Type checking of constructor signatures corresponds to the judgment
+-- @Γ ⊢ (A0;...;An)B consig@ which is defined as
+--
+-- @
+--    Γ ⊢ Ai type   Γ ⊢ B type
+--    ------------------------
+--        Γ ⊢ (A0;...;An)B
+-- @
+--
+-- Because of the ABT representation, however, the scope is pushed down inside
+-- the 'ConSig' constructor, onto its arguments.
+
+checkConSig :: ConSig -> TypeChecker ()
+checkConSig (ConSig args ret) =
+  do mapM_ isType args
+     isType ret
