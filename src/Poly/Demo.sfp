@@ -1,0 +1,74 @@
+data Bool = True | False end
+
+let not : Bool -> Bool
+  = \b -> case b of
+          | True -> False
+          | False -> True
+          end
+end
+
+data Nat = Zero | Suc Nat end
+
+let even : Nat -> Bool
+  = \n -> case n of
+          | Zero -> True
+          | Suc Zero -> False
+          | Suc (Suc n) -> even n
+          end
+end
+
+let plus : Nat -> Nat -> Nat
+  = \x -> \y ->
+      case x of
+      | Zero -> y
+      | Suc x2 -> Suc (plus x2 y)
+      end
+end
+
+let mul : Nat -> Nat -> Nat
+  = \x -> \y ->
+      case x of
+      | Zero -> Zero
+      | Suc n -> plus y (mul n y)
+      end
+end
+
+let id : forall a. a -> a
+  = \x -> x
+end
+
+let const : forall a. forall b. a -> b -> a
+ = \x -> \y -> x
+end
+
+data Unit = Unit end
+
+data Delay a = Delay (Unit -> a) end
+
+let force : forall a. Delay a -> a
+  = \thunk -> case thunk of
+              | Delay f -> f Unit
+              end
+end
+
+let if : forall a. Bool -> Delay a -> Delay a -> a
+  = \b -> \t -> \f ->
+      case b of
+      | True -> force t
+      | False -> force f
+      end
+end
+
+data List a = Nil | Cons a (List a) end
+
+let map : forall a. forall b. (a -> b) -> List a -> List b
+  = \f -> \l ->
+      case l of
+      | Nil -> Nil
+      | Cons x xs -> Cons (f x) (map f xs)
+      end
+end
+
+let compose : forall a. forall b. forall c. (b -> c) -> (a -> b) -> a -> c
+  = \f -> \g -> \x -> f (g x)
+end
