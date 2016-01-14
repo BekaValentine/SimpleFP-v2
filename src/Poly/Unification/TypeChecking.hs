@@ -157,7 +157,7 @@ instantiateParams argscs retsc =
 
 
 
--- | we can instantiate a universally quantified type with metavaraibles
+-- | We can instantiate a universally quantified type with metavariables
 -- eliminating all the initial quantifiers. For example, the type
 -- @forall a b. (a -> b) -> a@ would become @(?0 -> ?1) -> ?0@, while the type
 -- @forall a. (forall b. a -> b) -> a@ would become
