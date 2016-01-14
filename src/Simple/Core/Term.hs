@@ -42,9 +42,6 @@ data TermF r
 
 type Term = ABT TermF
 
-instance Show Term where
-  show = pretty
-
 
 -- | Clauses are a subsort of terms that has bunch of pattern scopes together
 -- with a clause body.
@@ -97,8 +94,8 @@ conPatH c xs = In (ConPat c (map (scope []) xs))
 -- de-parenthesization.
 
 data TermParenLoc
-  = AnnLeft
-  | LamBody | AppLeft | AppRight
+  = AnnTerm
+  | LamBody | AppFun | AppArg
   | ConArg | CaseArg | ClauseBody
   deriving (Eq)
 
@@ -107,19 +104,19 @@ instance Parens Term where
   type Loc Term = TermParenLoc
   
   parenLoc (Var _) =
-    [AnnLeft,LamBody,AppLeft,AppRight,ConArg,CaseArg,ClauseBody]
+    [AnnTerm,LamBody,AppFun,AppArg,ConArg,CaseArg,ClauseBody]
   parenLoc (In (Defined _)) =
-    [AnnLeft,LamBody,AppLeft,AppRight,ConArg,CaseArg,ClauseBody]
+    [AnnTerm,LamBody,AppFun,AppArg,ConArg,CaseArg,ClauseBody]
   parenLoc (In (Ann _ _)) =
     [LamBody,CaseArg,ClauseBody]
   parenLoc (In (Lam _)) =
     [LamBody,CaseArg,ClauseBody]
   parenLoc (In (App _ _)) =
-    [AnnLeft,LamBody,AppLeft,CaseArg,ClauseBody]
+    [AnnTerm,LamBody,AppFun,CaseArg,ClauseBody]
   parenLoc (In (Con _ [])) =
-    [AnnLeft,LamBody,AppLeft,AppRight,ConArg,CaseArg,ClauseBody]
+    [AnnTerm,LamBody,AppFun,AppArg,ConArg,CaseArg,ClauseBody]
   parenLoc (In (Con _ _)) =
-    [AnnLeft,LamBody,CaseArg,ClauseBody]
+    [AnnTerm,LamBody,CaseArg,ClauseBody]
   parenLoc (In (Case _ _)) =
     [LamBody,ClauseBody]
 
@@ -127,7 +124,7 @@ instance Parens Term where
     name v
   parenRec (In (Defined n)) = n
   parenRec (In (Ann m t)) =
-    parenthesize (Just AnnLeft) (instantiate0 m)
+    parenthesize (Just AnnTerm) (instantiate0 m)
       ++ " : "
       ++ pretty t
   parenRec (In (Lam sc)) =
@@ -136,9 +133,9 @@ instance Parens Term where
       ++ parenthesize (Just LamBody)
            (body sc)
   parenRec (In (App f a)) =
-    parenthesize (Just AppLeft) (instantiate0 f)
+    parenthesize (Just AppFun) (instantiate0 f)
       ++ " "
-      ++ parenthesize (Just AppRight) (instantiate0 a)
+      ++ parenthesize (Just AppArg) (instantiate0 a)
   parenRec (In (Con c [])) =
     c
   parenRec (In (Con c as)) =

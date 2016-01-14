@@ -78,7 +78,6 @@ instance Parens Type where
   parenLoc (In (Forall _)) =
     [FunRight,ForallBody]
   
-  parenRec (Var (Meta (MetaVar n))) = "?" ++ show n
   parenRec (Var v) = name v
   parenRec (In (TyCon c [])) = c
   parenRec (In (TyCon c as)) =

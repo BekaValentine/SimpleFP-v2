@@ -1,6 +1,7 @@
 {-# OPTIONS -Wall #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
 
@@ -22,7 +23,9 @@ module Utils.ABT where
 
 import Utils.Vars
 
+import Data.Bifunctor
 import qualified Data.Foldable as F (foldl')
+import Data.Functor.Classes
 import Data.List (elemIndex)
 
 
@@ -68,10 +71,6 @@ data ABT f
 deriving instance Show (f (Scope f)) => Show (ABT f)
 
 
-instance Eq (f (Scope f)) => Eq (ABT f) where
-  Var v == Var v' = v == v'
-  In x == In y = x == y
-  _ == _ = False
 
 
 
@@ -96,7 +95,7 @@ data Variable
 name :: Variable -> String
 name (Free (FreeVar n)) = n
 name (Bound n _)        = n
-name (Meta _)           = error "Metavariables to not have names."
+name (Meta i)           = "?" ++ show i
 
 
 -- | Equality of variables is by the parts which identify them, so names for
@@ -107,6 +106,8 @@ instance Eq Variable where
   Bound _ i == Bound _ j = i == j
   Meta m    == Meta n    = m == n
   _         == _         = False
+
+
 
 
 
@@ -127,8 +128,42 @@ data Scope f
 deriving instance Show (f (Scope f)) => Show (Scope f)
 
 
-instance Eq (f (Scope f)) => Eq (Scope f) where
-  Scope _ _ x == Scope _ _ y = x == y
+
+
+
+
+-- * Translating ABTs between construction signatures
+
+
+
+-- | When @f@ is a bifunctor, @ABT (f a)@ will be functorial in @a@. This lets
+-- use use 'Scope' like we'd use 'Fix' — to define parameterized types such as
+-- 'List' here:
+--
+-- @
+--    data ListF a r = Nil | Cons a r
+--    
+--    type List a = Fix (ListF a)
+-- @
+--
+-- and the result 'List' here is itself functorial. However, juggling the
+-- relationships between 'Functor' and 'Bifunctor' to make this automatic
+-- is tedious. We can define the derived map once and for all over 'Bifunctor'
+-- without any concern for functor instances.
+
+translate :: Bifunctor f
+          => (forall r. f a r -> f b r)
+          -> ABT (f a) -> ABT (f b)
+translate _ (Var v) = Var v
+translate n (In x) = In (n (second (translateScope n) x))
+
+
+-- | Similarly, we can translate a scope, by just propogating the translation.
+
+translateScope :: Bifunctor f
+               => (forall r. f a r -> f b r)
+               -> Scope (f a) -> Scope (f b)
+translateScope n (Scope ns fns x) = Scope ns fns (translate n x)
 
 
 
@@ -287,8 +322,6 @@ unshift l i (In x) = In (fmap (unshiftScope l i) x)
 
 unshiftScope :: Functor f => Int -> Int -> Scope f -> Scope f
 unshiftScope l i (Scope ns fns x) = Scope ns fns (unshift (l+length ns) i x)
-
-
 
 
 
@@ -554,3 +587,20 @@ occurs m x = fold ocAlgV ocAlgRec ocAlgSc x
     
     ocAlgSc :: Int -> Bool -> Bool
     ocAlgSc _ b = b
+
+
+
+
+
+
+-- * Equality
+
+
+instance Eq1 f => Eq (ABT f) where
+  Var x == Var y = x == y
+  In x == In y = eq1 x y
+  _ == _ = False
+
+
+instance Eq1 f => Eq (Scope f) where
+  Scope _ _ x == Scope _ _ y = x == y

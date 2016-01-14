@@ -5,7 +5,7 @@
 
 
 -- | This module defines what it means to be a program in the simply typed
--- lambda calculus w/ non-parametric user defined types (eg Bool, Nat).
+-- lambda calculus w/ parametric user defined types (eg Maybe, List).
 
 module Poly.Core.Program where
 

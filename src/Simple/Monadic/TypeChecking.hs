@@ -18,6 +18,7 @@ import Simple.Core.ConSig
 import Simple.Core.Term
 import Simple.Core.Type
 import Simple.Monadic.Elaborator
+import Simple.Monadic.Equality ()
 
 import Control.Monad.Except
 

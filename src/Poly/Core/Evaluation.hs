@@ -26,21 +26,21 @@ import Control.Monad.Except
 
 -- | Pattern matching for case expressions.
 
-match :: Pattern -> Term -> Maybe [Term]
-match (Var _) v = Just [v]
-match (In (ConPat c ps)) (In (Con c' as))
+matchPattern :: Pattern -> Term -> Maybe [Term]
+matchPattern (Var _) v = Just [v]
+matchPattern (In (ConPat c ps)) (In (Con c' as))
   | c == c' && length ps == length as =
-    fmap concat (zipWithM match (map body ps) (map body as))
-match _ _ = Nothing
+    fmap concat (zipWithM matchPattern (map body ps) (map body as))
+matchPattern _ _ = Nothing
 
-matchTerms :: [Pattern] -> [Term] -> Maybe [Term]
-matchTerms ps zs = fmap concat (zipWithM match ps zs)
+matchPatterns :: [Pattern] -> [Term] -> Maybe [Term]
+matchPatterns ps zs = fmap concat (zipWithM matchPattern ps zs)
 
 matchClauses :: [Clause] -> [Term] -> Maybe Term
 matchClauses [] _ =
   Nothing
 matchClauses (Clause pscs sc:cs) vs =
-  case matchTerms (map body pscs) vs of
+  case matchPatterns (map body pscs) vs of
     Nothing -> matchClauses cs vs
     Just xs -> Just (instantiate sc xs)
 

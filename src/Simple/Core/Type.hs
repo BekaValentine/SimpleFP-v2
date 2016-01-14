@@ -18,7 +18,6 @@ module Simple.Core.Type where
 
 import Utils.ABT
 import Utils.Pretty
-import Utils.Vars
 
 
 
@@ -37,9 +36,6 @@ data TypeF r
 
 
 type Type = ABT TypeF
-
-
-
 
 
 tyConH :: String -> Type
@@ -69,7 +65,6 @@ instance Parens Type where
   parenLoc (In (TyCon _)) = [FunLeft,FunRight]
   parenLoc (In (Fun _ _)) = [FunRight]
   
-  parenRec (Var (Meta (MetaVar n))) = "?" ++ show n
   parenRec (Var v) = name v
   parenRec (In (TyCon c)) = c
   parenRec (In (Fun a b)) =
