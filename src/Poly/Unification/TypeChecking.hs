@@ -350,7 +350,7 @@ checkify (In (Lam sc)) t =
             ++ "Against non-function type: " ++ pretty t
 checkify m t =
   do t' <- inferify m
-     equivQuantifiers t' t
+     subtype t' t
 
 
 
@@ -375,9 +375,8 @@ checkifyMulti _ _ =
 
 
 
--- | This function checks if the first type can be found to be equivalent to
--- the second by instantiation of its quantifiers. This corresponds to the
--- subtyping judgment @Γ ⊢ S <: T@ which is defined inductively as:
+-- | This function checks if the first type is a subtype of the second. This
+-- corresponds to the judgment @Γ ⊢ S <: T@ which is defined inductively as:
 --
 -- @
 --     Γ, a type ⊢ S <: T
@@ -396,18 +395,18 @@ checkifyMulti _ _ =
 --    Γ ⊢ A <: A
 -- @
 
-equivQuantifiers :: Type -> Type -> TypeChecker ()
-equivQuantifiers t (In (Forall sc')) =
+subtype :: Type -> Type -> TypeChecker ()
+subtype t (In (Forall sc')) =
   do [n] <- freshRelTo (names sc') context
-     equivQuantifiers t (instantiate sc' [Var (Free n)])
-equivQuantifiers (In (Forall sc)) t' =
+     subtype t (instantiate sc' [Var (Free n)])
+subtype (In (Forall sc)) t' =
   do meta <- nextElab nextMeta
      let x2 = Var (Meta meta)
-     equivQuantifiers (instantiate sc [x2]) t'
-equivQuantifiers (In (Fun arg ret)) (In (Fun arg' ret')) =
-  do equivQuantifiers (instantiate0 arg') (instantiate0 arg)
-     equivQuantifiers (instantiate0 ret) (instantiate0 ret')
-equivQuantifiers t t' =
+     subtype (instantiate sc [x2]) t'
+subtype (In (Fun arg ret)) (In (Fun arg' ret')) =
+  do subtype (instantiate0 arg') (instantiate0 arg)
+     subtype (instantiate0 ret) (instantiate0 ret')
+subtype t t' =
   unify substitution context t t'
 
 
