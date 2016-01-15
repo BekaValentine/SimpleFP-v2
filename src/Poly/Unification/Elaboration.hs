@@ -35,7 +35,8 @@ addDeclaration :: String -> Term -> Type -> Elaborator ()
 addDeclaration n def ty = addElab definitions [(n,(def,ty))]
 
 
--- | We can add a new type constructor by giving a name.
+-- | We can add a new type constructor by giving a name and a type constructor
+-- signature.
 
 addTypeConstructor :: String -> TyConSig -> Elaborator ()
 addTypeConstructor n sig = addElab (signature.typeConstructors) [(n,sig)]
@@ -110,13 +111,13 @@ elabTermDecl (WhereDeclaration n ty preclauses) =
 
 
 -- | Elaboration of a constructor in this variant is a relatively simple
--- process. This corresponds to the elaboration judgment @Σ ⊢ c con⇝ Σ'@ which
--- is defined as
+-- process. This corresponds to the elaboration judgment @Σ ⊢ c con S ⇝ Σ'@
+-- which is defined as
 --
 -- @
---       Σ # c   Ai type   B type
---    ------------------------------
---    Σ ⊢ c con⇝ Σ, c : (A0,...,An)B
+--         Σ # c   S consig
+--    ---------------------------
+--    Σ ⊢ alt[c](S) con⇝ Σ, c : S
 -- @
 --
 -- where @Σ # c@ means that @c@ is not a data constructor in @Σ@.
