@@ -166,7 +166,7 @@ instantiateParams argscs retsc =
 
 instantiateQuantifiers :: Type -> TypeChecker Type
 instantiateQuantifiers (In (Forall sc)) =
-  do meta <- nextElab nextMeta {- newMetaVar -}
+  do meta <- nextElab nextMeta
      let m = Var (Meta meta)
      instantiateQuantifiers (instantiate sc [m])
 instantiateQuantifiers t = return t
@@ -224,7 +224,7 @@ inferify (In (Ann m t)) =
      return $ substMetas subs t
 inferify (In (Lam sc)) =
   do [n] <- freshRelTo (names sc) context
-     meta <- nextElab nextMeta {- newMetaVar -}
+     meta <- nextElab nextMeta
      let arg = Var (Meta meta)
      ret <- extendElab context [(n, arg)]
               $ inferify (instantiate sc [Var (Free n)])
