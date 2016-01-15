@@ -321,7 +321,7 @@ inferifyClauses patTys cs =
 -- The judgment @Γ ⊢ M ⇐ A true@ is defined inductively as follows:
 --
 -- @
---      Γ ⊢ M ⇐ [A/a]B true
+--     Γ, a type ⊢ M ⇐ B true
 --    ------------------------ forall
 --    Γ ⊢ M ⇐ forall a. B true
 --
