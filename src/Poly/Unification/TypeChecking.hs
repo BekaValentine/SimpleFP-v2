@@ -6,7 +6,9 @@
 
 
 
--- | A unification-based type checker.
+-- | A unification-based type checker. It's worth noting that this language is
+-- not System F, as it lacks syntax for type abstraction and type application.
+-- Instead, it's more like Haskell with @RankNTypes@.
 
 module Poly.Unification.TypeChecking where
 
