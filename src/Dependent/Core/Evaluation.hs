@@ -20,6 +20,7 @@ import Utils.ABT
 import Utils.Env
 import Utils.Eval
 import Utils.Pretty
+import Utils.Telescope
 import Dependent.Core.Term
 
 
@@ -73,9 +74,12 @@ instance Eval (Env String Term) Term where
   eval (In Type) =
     return $ In Type
   eval (In (Fun a sc)) =
-    return $ In (Fun a sc)
+    do ea <- underM eval a
+       esc <- underM eval sc
+       return $ In (Fun ea esc)
   eval (In (Lam sc)) =
-    return $ In (Lam sc)
+    do esc <- underM eval sc
+       return $ In (Lam esc)
   eval (In (App f a)) =
     do ef <- eval (instantiate0 f)
        ea <- eval (instantiate0 a)
@@ -91,7 +95,41 @@ instance Eval (Env String Term) Term where
          Nothing ->
            if any (\p -> case p of { (In (Con _ _)) -> False ; _ -> True })
                   ems
-           then return (In (Case ms mot cs))
+           then do
+             emot <- eval mot
+             ecs <- mapM eval cs
+             return $ caseH ems emot ecs
            else throwError $ "Incomplete pattern match: "
                           ++ pretty (In (Case ms mot cs))
          Just b  -> eval b
+
+
+instance Eval (Env String Term) CaseMotive where
+  eval (CaseMotive (Telescope ascs bsc)) =
+    do eascs <- mapM (underM eval) ascs
+       ebsc <- underM eval bsc
+       return $ CaseMotive (Telescope eascs ebsc)
+
+
+instance Eval (Env String Term) Clause where
+  eval (Clause pscs bsc) =
+    do epscs <- mapM eval pscs
+       ebsc <- underM eval bsc
+       return $ Clause epscs ebsc
+
+
+instance Eval (Env String Term) (PatternF (Scope TermF)) where
+  eval (PatternF x) =
+    do ex <- underM eval x
+       return $ PatternF ex
+
+
+instance Eval (Env String Term) (ABT (PatternFF (Scope TermF))) where
+  eval (Var v) =
+    return $ Var v
+  eval (In (ConPat c ps)) =
+    do eps <- mapM (underM eval) ps
+       return $ In (ConPat c eps)
+  eval (In (AssertionPat m)) =
+    do em <- underM eval m
+       return $ In (AssertionPat em)
