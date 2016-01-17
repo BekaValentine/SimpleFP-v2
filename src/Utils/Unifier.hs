@@ -123,7 +123,7 @@ substMetasEquation subs (Equation l r) =
 -- | A collection of constructions can be unified providing eq can equate
 -- ABTs. This involves producing a new set of equations from the input.
 
-class Monad m => MonadUnify f m | m -> f where
+class Monad m => MonadUnify f m where
   equate :: f (Scope f)
          -> f (Scope f)
          -> m [Equation (ABT f)]

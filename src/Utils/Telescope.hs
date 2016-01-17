@@ -39,6 +39,10 @@ instance Eq1 Telescope where
     as == as' && b == b'
 
 
+namesTelescope :: Telescope (Scope f) -> [String]
+namesTelescope (Telescope _ bsc) = names bsc
+
+
 telescopeH :: (Functor f, Foldable f)
            => [String] -> [ABT f] -> ABT f -> Telescope (Scope f)
 telescopeH xs as b = Telescope ascs bsc
