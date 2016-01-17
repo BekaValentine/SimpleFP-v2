@@ -113,6 +113,16 @@ instance Bifoldable PatternFF where
   bifoldMap f _ (AssertionPat x) = f x
 
 
+instance Bizippable PatternFF where
+  bizip (ConPat c rs) (ConPat c' rs')
+    | c == c' && length rs == length rs' =
+      Just ([], zip rs rs')
+    | otherwise = Nothing
+  bizip (AssertionPat a) (AssertionPat a') =
+    Just ([(a,a')], [])
+  bizip _ _ = Nothing
+
+
 -- | 'PatternF' is the type of pattern shaped containers for terms. The
 -- bifunctoriality and bifoldability of 'PatternFF' gives rise to the
 -- functoriality and foldability of 'PatternF', meaning we can use it as a

@@ -604,3 +604,39 @@ instance Eq1 f => Eq (ABT f) where
 
 instance Eq1 f => Eq (Scope f) where
   Scope _ _ x == Scope _ _ y = x == y
+
+
+
+
+
+
+
+-- * Zipping
+
+
+
+-- | This class defines a generic notion of bifunctorial zipping.
+
+class Bizippable f where
+  bizip :: f a b -> f a' b' -> Maybe ( [(a,a')], [(b,b')] )
+
+
+-- | For a bizppable @f@, we can zip an @ABT (f a)@ with an @ABT (f b)@ by
+-- pairing up the @a@s and the @b@s, provided that the 'ABT' structure is
+-- the same in both.
+
+zipABTF :: Bizippable f => ABT (f a) -> ABT (f b) -> Maybe [(a,b)]
+zipABTF (Var x) (Var y)
+  | x == y    = Just []
+  | otherwise = Nothing
+zipABTF (In x) (In y) =
+  do (zippedABs, zippedScope) <- bizip x y
+     zippedABss <- mapM (uncurry zipScopeF) zippedScope
+     return $ zippedABs ++ concat zippedABss
+zipABTF _ _ = Nothing
+
+
+zipScopeF :: Bizippable f => Scope (f a) -> Scope (f b) -> Maybe [(a,b)]
+zipScopeF (Scope ns _ x) (Scope ns' _ y)
+  | length ns == length ns' = zipABTF x y
+  | otherwise = Nothing

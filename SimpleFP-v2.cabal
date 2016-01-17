@@ -16,10 +16,11 @@ extra-source-files:  README.md
 cabal-version:       >=1.10
 
 library
-  exposed-modules:     Dependent.Monadic.REPL,
-                       Simple.Monadic.REPL,
+  exposed-modules:     Simple.Monadic.REPL,
                        Simple.Unification.REPL,
-                       Poly.Unification.REPL
+                       Poly.Unification.REPL,
+                       Dependent.Monadic.REPL,
+                       Dependent.Unification.REPL
   -- other-modules:       
   -- other-extensions:    
   build-depends:       base,
