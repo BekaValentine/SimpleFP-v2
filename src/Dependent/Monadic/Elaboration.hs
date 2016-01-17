@@ -68,8 +68,10 @@ elabTermDecl (TermDeclaration n ty0 def0) =
          def = freeToDefined (In . Defined) def0
      when' (typeInDefinitions n)
          $ throwError ("Term already defined: " ++ n)
-     check ty (In Type)
-     extendElab definitions [(n,(def,ty))] (check def ty)
+     check ty (NormalTerm (In Type))
+     ety <- evaluate ty
+     extendElab definitions [(n,(def,ty))]
+       $ check def ety
      addDeclaration n def ty
 elabTermDecl (WhereDeclaration n ty preclauses) =
   case preclauses of

@@ -31,15 +31,23 @@ import Control.Monad.Reader
 
 
 
+-- | In the dependently typed variant, it's useful to have a type for normal
+-- terms. While this type won't actually be representationally different, we
+-- can use it to help ensure we're using normal forms in places where we want
+-- them, such as the type arguments to checking.
+
+newtype NormalTerm = NormalTerm { normTerm :: Term }
+
+
 -- | It's useful to have a way of evaluating without having to constantly get
 -- make an environment and run the evaluator manually.
 
-evaluate :: Term -> TypeChecker Term
+evaluate :: Term -> TypeChecker NormalTerm
 evaluate m =
   do defs <- getElab definitions
      case runReaderT (eval m) (definitionsToEnvironment defs) of
        Left e   -> throwError e
-       Right m' -> return m'
+       Right m' -> return $ NormalTerm m'
 
 
 -- | We can get the consig of a constructor by looking in the signature.
@@ -138,18 +146,18 @@ infer (In (Defined x)) =
   typeInDefinitions x
 infer (In (Ann m t0)) =
   do let t = instantiate0 t0
-     check t (In Type)
+     check t (NormalTerm (In Type))
      et <- evaluate t
      check (instantiate0 m) et
-     return et
+     return $ normTerm et
 infer (In Type) =
   return $ In Type
 infer (In (Fun arg0 sc)) =
   do let arg = instantiate0 arg0
-     check arg (In Type)
+     check arg (NormalTerm (In Type))
      [n] <- freshRelTo (names sc) context
      extendElab context [(n, arg)]
-       $ check (instantiate sc [Var (Free n)]) (In Type)
+       $ check (instantiate sc [Var (Free n)]) (NormalTerm (In Type))
      return $ In Type
 infer (In (Lam _)) =
   throwError "Cannot infer the type of a lambda expression."
@@ -157,12 +165,12 @@ infer (In (App f0 a0)) =
   do let f = instantiate0 f0
          a = instantiate0 a0
      t <- infer f
-     et <- evaluate t
+     NormalTerm et <- evaluate t
      case et of
        In (Fun arg sc) -> do
          earg <- evaluate (instantiate0 arg)
          check a earg
-         return (instantiate sc [a])
+         return $ instantiate sc [a]
        _ -> throwError $ "Cannot apply a non-function: " ++ pretty f
 infer (In (Con c as0)) =
   do let as = map instantiate0 as0
@@ -174,7 +182,8 @@ infer (In (Con c as0)) =
        $ throwError $ c ++ " expects " ++ show largs ++ " "
                    ++ (if largs == 1 then "arg" else "args")
                    ++ " but was given " ++ show las
-     zipWithM_ check as args
+     eargs <- mapM evaluate args
+     zipWithM_ check as eargs
      return ret
 infer (In (Case as0 motive cs)) =
   do let as = map instantiate0 as0
@@ -187,7 +196,8 @@ infer (In (Case as0 motive cs)) =
        $ throwError $ "Motive " ++ pretty motive ++ " expects " ++ show largs
                    ++ " case " ++ (if largs == 1 then "arg" else "args")
                    ++ " but was given " ++ show las
-     zipWithM_ check as args
+     eargs <- mapM evaluate args
+     zipWithM_ check as eargs
      forM_ cs $ \c -> checkClause c motive
      return ret
 
@@ -209,13 +219,12 @@ infer (In (Case as0 motive cs)) =
 --         Γ ⊢ M ⇐ A true
 -- @
 
-check :: Term -> Term -> TypeChecker ()
-check (In (Lam sc)) t =
-  do et <- evaluate t
-     case et of
+check :: Term -> NormalTerm -> TypeChecker ()
+check (In (Lam sc)) (NormalTerm t) =
+  do case t of
        In (Fun arg0 sc') -> do
          let arg = instantiate0 arg0
-         check arg (In Type)
+         check arg (NormalTerm (In Type))
          [n] <- freshRelTo (names sc) context
          eret <- evaluate (instantiate sc' [Var (Free n)])
          extendElab context [(n, arg)]
@@ -223,12 +232,11 @@ check (In (Lam sc)) t =
                    eret
        _ -> throwError $ "Cannot check term: " ++ pretty (In (Lam sc)) ++ "\n"
             ++ "Against non-function type: " ++ pretty t
-check m t =
+check m (NormalTerm t) =
   do t' <- infer m
-     et <- evaluate t
-     et' <- evaluate t'
-     unless (et == et')
-       $ throwError $ "Needed a " ++ pretty t ++ " but found " ++ pretty t'
+     NormalTerm et' <- evaluate t'
+     unless (t == et')
+       $ throwError $ "Needed a " ++ pretty t ++ " but found " ++ pretty et'
                    ++ " when type checking " ++ pretty m
 
 
@@ -293,29 +301,28 @@ checkCaseMotive (CaseMotive tele) = checkTelescope tele
 -- their types, and they can immediately be checked, possibly unifying the
 -- types as needed, regardless of the order inside the pattern.
 
-checkPattern :: Pattern -> Term -> TypeChecker (Context,Term,[(Term,Term)])
+checkPattern :: Pattern -> NormalTerm -> TypeChecker (Context,Term,[(Term,Term)])
 checkPattern (Var (Bound _ _)) _ =
   error "A bound variable should not be the subject of pattern type checking."
-checkPattern (Var (Free x)) t =
+checkPattern (Var (Free x)) (NormalTerm t) =
   return ( [(x,t)]
          , Var (Free x)
          , []
          )
 checkPattern (Var (Meta _)) _ =
   error "Metavariables should not occur in this type checker."
-checkPattern (In (ConPat _ _)) (In Type) =
+checkPattern (In (ConPat _ _)) (NormalTerm (In Type)) =
   throwError "Cannot pattern match on a type."
-checkPattern (In (ConPat c ps)) t =
+checkPattern (In (ConPat c ps)) (NormalTerm t) =
   do consig <- typeInSignature c
      (ctx,ms,ret,delayed) <- checkPatterns (map instantiate0 ps) consig
-     eret <- evaluate ret
-     et <- evaluate t
-     unless (et == eret)
-       $ throwError $ "Needed a " ++ pretty et ++ " but found " ++ pretty eret
+     NormalTerm eret <- evaluate ret
+     unless (t == eret)
+       $ throwError $ "Needed a " ++ pretty t ++ " but found " ++ pretty eret
                    ++ " when type checking the pattern "
                    ++ pretty (In (ConPat c ps))
      return (ctx, conH c ms, delayed)
-checkPattern (In (AssertionPat m)) t =
+checkPattern (In (AssertionPat m)) (NormalTerm t) =
   return ( []
          , m
          , [(m,t)]
@@ -334,7 +341,7 @@ checkPattern (In (AssertionPat m)) t =
 --    Γ ⊢ P2 pattern [M0/x0,M1/x1]A2 ⇝ Γ2' yielding M2
 --    ...
 --    Γ ⊢ Pn pattern [M0/x0,...,Mn-1/xn-1]An ⇝ Γn' yielding Mn
---    ------
+--    ------------------------------------------------------------
 --    Γ ⊢ P0,...,Pn patterns sig((x0:A0)...(xn:An)B)
 --          ⇝ Γ0',...,Γn' yielding M0,...,Mn at [M0/x0,...,Mn/xn]B
 -- @
@@ -355,7 +362,8 @@ checkPatterns ps0 (ConSig (Telescope ascs bsc)) =
        -> TypeChecker (Context, [Term], [(Term,Term)])
     go _ [] [] = return ([], [], [])
     go acc (p:ps) (sc:scs) =
-      do (ctx, m, delayed) <- checkPattern p (instantiate sc acc)
+      do et <- evaluate (instantiate sc acc)
+         (ctx, m, delayed) <- checkPattern p et
          (ctx', ms, delayed') <- go (acc ++ [m]) ps scs
          return (ctx ++ ctx', m:ms, delayed ++ delayed')
     go _ _ _ =
@@ -397,7 +405,8 @@ checkPatternsCaseMotive ps0 (CaseMotive (Telescope ascs bsc)) =
        -> TypeChecker (Context, [Term], [(Term,Term)])
     go _ [] [] = return ([], [], [])
     go acc (p:ps) (sc:scs) =
-      do (ctx, m, delayed) <- checkPattern p (instantiate sc acc)
+      do et <- evaluate (instantiate sc acc)
+         (ctx, m, delayed) <- checkPattern p et
          (ctx', ms, delayed') <- go (acc ++ [m]) ps scs
          return (ctx ++ ctx', m:ms, delayed ++ delayed')
     go _ _ _ =
@@ -434,7 +443,10 @@ checkClause (Clause pscs sc) mot@(CaseMotive (Telescope ascs _)) =
                                (map (\psc -> patternInstantiate psc xs1 xs2)
                                     pscs)
                                mot
-     forM_ delayed $ \(m,t) -> extendElab context ctx' (check m t)
+     forM_ delayed $ \(m,t) ->
+       do et <- evaluate t
+          extendElab context ctx'
+            $ check m et
      eret <- evaluate ret
      extendElab context ctx'
        $ check (instantiate sc xs2) eret
@@ -477,4 +489,4 @@ checkTelescope tele@(Telescope _ retsc) =
   do ns <- freshRelTo (names retsc) context
      forM_ (instantiateTelescopeNames tele ns) $ \(ctx', t) ->
        extendElab context ctx'
-         $ check t (In Type)
+         $ check t (NormalTerm (In Type))
