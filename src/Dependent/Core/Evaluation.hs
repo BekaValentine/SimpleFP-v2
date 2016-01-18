@@ -1,4 +1,5 @@
 {-# OPTIONS -Wall #-}
+{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeSynonymInstances #-}
@@ -29,31 +30,72 @@ import Dependent.Core.Term
 
 
 
+-- | Because a case expression can be evaluated under a binder, it's necessary
+-- to determine when a match failure is real or illusory. For example, if we
+-- have the function @\x -> case x of { Zero -> True ; _ -> False }@, and
+-- naively tried to match, the first clause would fail, because @x =/= Zero@,
+-- and the second would succeed, reducing this function to @\x -> False@.
+-- But this would be bad, because if we then applied this function to @Zero@,
+-- the result is just @False@. But if we had applied the original function to
+-- @Zero@ and evaluated, it would reduce to @True@. Instead, we need to know
+-- more than just did the match succeed or fail, but rather, did it succeed,
+-- definitely fail because of a constructor mismatch, or is it uncertain
+-- because of insufficient information (e.g. a variable or some other
+-- non-constructor expression). We can use this type to represent that
+-- three-way distinction between definite matches, definite failures, and
+-- unknown situations.
+
+data MatchResult a
+  = Success a
+  | Unknown
+  | Failure
+  deriving (Functor)
+
+
+instance Applicative MatchResult where
+  pure = Success
+  
+  Success f <*> Success x = Success (f x)
+  Unknown <*> _ = Unknown
+  _ <*> Unknown = Unknown
+  _ <*> _ = Failure
+
+
+instance Monad MatchResult where
+  return = Success
+  
+  Success x >>= f = f x
+  Unknown >>= _ = Unknown
+  Failure >>= _ = Failure
+
+
 -- | Pattern matching for case expressions.
 
-matchPattern :: Pattern -> Term -> Maybe [Term]
-matchPattern (Var _) v = Just [v]
+matchPattern :: Pattern -> Term -> MatchResult [Term]
+matchPattern (Var _) v = Success [v]
 matchPattern (In (ConPat c ps)) (In (Con c' as))
   | c == c' && length ps == length as =
     fmap concat (zipWithM matchPattern (map body ps) (map body as))
-matchPattern (In (AssertionPat _)) v = Just [v]
-matchPattern _ _ = Nothing
+  | otherwise = Failure
+matchPattern (In (AssertionPat _)) v = Success [v]
+matchPattern _ _ = Unknown
 
-matchPatterns :: [Pattern] -> [Term] -> Maybe [Term]
+matchPatterns :: [Pattern] -> [Term] -> MatchResult [Term]
 matchPatterns [] [] =
-  Just []
+  Success []
 matchPatterns (p:ps) (m:ms) =
   do vs <- matchPattern p m
      vs' <- matchPatterns ps ms
      return $ vs ++ vs'
-matchPatterns _ _ = Nothing
+matchPatterns _ _ = Failure
 
-matchClauses :: [Clause] -> [Term] -> Maybe Term
-matchClauses [] _ = Nothing
+matchClauses :: [Clause] -> [Term] -> MatchResult Term
+matchClauses [] _ = Failure
 matchClauses (Clause pscs sc:cs) ms =
   case matchPatterns (map patternBody pscs) ms of
-    Nothing -> matchClauses cs ms
-    Just vs -> Just (instantiate sc vs)
+    Failure -> matchClauses cs ms
+    Unknown -> Unknown
+    Success vs -> Success (instantiate sc vs)
 
 
 
@@ -92,16 +134,14 @@ instance Eval (Env String Term) Term where
   eval (In (Case ms mot cs)) =
     do ems <- mapM eval (map instantiate0 ms)
        case matchClauses cs ems of
-         Nothing ->
-           if any (\p -> case p of { (In (Con _ _)) -> False ; _ -> True })
-                  ems
-           then do
-             emot <- eval mot
-             ecs <- mapM eval cs
-             return $ caseH ems emot ecs
-           else throwError $ "Incomplete pattern match: "
-                          ++ pretty (In (Case ms mot cs))
-         Just b  -> eval b
+         Success b  -> eval b
+         Unknown -> 
+           do emot <- eval mot
+              ecs <- mapM eval cs
+              return $ caseH ems emot ecs
+         Failure ->
+           throwError $ "Incomplete pattern match: "
+                     ++ pretty (In (Case ms mot cs))
 
 
 instance Eval (Env String Term) CaseMotive where
