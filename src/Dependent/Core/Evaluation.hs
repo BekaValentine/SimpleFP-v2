@@ -137,8 +137,7 @@ instance Eval (Env String Term) Term where
          Success b  -> eval b
          Unknown -> 
            do emot <- eval mot
-              ecs <- mapM eval cs
-              return $ caseH ems emot ecs
+              return $ caseH ems emot cs
          Failure ->
            throwError $ "Incomplete pattern match: "
                      ++ pretty (In (Case ms mot cs))
