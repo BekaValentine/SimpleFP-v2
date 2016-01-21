@@ -11,7 +11,7 @@
 
 
 
--- | This module defines unification of simple types.
+-- | This module defines unification of dependent types.
 
 module Poly.Unification.Unification where
 
