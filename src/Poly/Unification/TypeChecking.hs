@@ -193,9 +193,9 @@ instantiateQuantifiers t = return t
 --    ----------------------- definition
 --    Γ ⊢ defined[n] ⇒ A true
 --
---      Γ ⊢ M ⇐ A true
---    ------------------ annotation
---    Γ ⊢ M : A ⇒ A true
+--    A type   Γ ⊢ M ⇐ A true
+--    ---------------------- annotation
+--      Γ ⊢ M : A ⇒ A true
 --
 --    Γ ⊢ M ⇒ A -> B   Γ ⊢ N ⇐ A
 --    -------------------------- application

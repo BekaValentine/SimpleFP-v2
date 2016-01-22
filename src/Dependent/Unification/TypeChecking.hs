@@ -123,9 +123,9 @@ typeInContext v@(FreeVar n) =
 --    ----------------------- definition
 --    Γ ⊢ defined[n] ⇒ A true
 --
---      Γ ⊢ M ⇐ A true
---    ------------------ annotation
---    Γ ⊢ M : A ⇒ A true
+--    Γ ⊢ A ⇐ Type true   Γ ⊢ M ⇐ A true
+--    ---------------------------------- annotation
+--            Γ ⊢ M : A ⇒ A true
 --
 --    -------------------- type
 --    Γ ⊢ Type ⇒ Type true
