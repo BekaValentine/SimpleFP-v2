@@ -243,13 +243,13 @@ check m (NormalTerm t) =
 
 
 
--- | This corresponds to the judgment @\Gamma \vdash M motive@ which is
--- defined directly in terms of telescopes as as
+-- | This corresponds to the judgment @Γ ⊢ M motive@ which is defined directly
+-- in terms of telescopes as as
 --
 -- @
 --    Γ ⊢ T telescope
 --    ---------------
---    Γ mot(T) motive
+--    Γ ⊢ mot(T) motive
 -- @
 
 checkCaseMotive :: CaseMotive -> TypeChecker ()
