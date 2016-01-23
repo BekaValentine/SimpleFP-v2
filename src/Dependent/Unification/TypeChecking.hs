@@ -473,8 +473,8 @@ checkifyClause (Clause pscs sc) mot@(CaseMotive (Telescope ascs _)) =
 --    Γ ⊢ sig(T) signature
 -- @
 
-checkConSig :: ConSig -> TypeChecker ()
-checkConSig (ConSig tele) = checkifyTelescope tele
+checkifyConSig :: ConSig -> TypeChecker ()
+checkifyConSig (ConSig tele) = checkifyTelescope tele
 
 
 

@@ -149,7 +149,7 @@ elabAlt tycon c consig0
        validConSig consig
        when' (typeInSignature c)
            $ throwError ("Constructor already declared: " ++ c)
-       checkConSig consig
+       checkifyConSig consig
        addConstructor c consig
   where
     validConSig :: ConSig -> Elaborator ()
@@ -185,7 +185,7 @@ elabTypeDecl (TypeDeclaration tycon tyconargs alts)
   = do let tyconSig = freeToDefinedConSig (conSigH tyconargs (In Type))
        when' (typeInSignature tycon)
            $ throwError ("Type constructor already declared: " ++ tycon)
-       checkConSig tyconSig
+       checkifyConSig tyconSig
        addConstructor tycon tyconSig
        mapM_ (uncurry (elabAlt tycon)) alts
 
