@@ -393,9 +393,6 @@ checkifyPatterns ps0 (ConSig (Telescope ascs bsc)) =
 --    --------------------------------------------------------------------
 --    Γ ⊢ P0,...,Pn patterns mot((x0:A0,...,xn:An)B) at [M0/x0,...,Mn/xn]B
 -- @
---
--- The function itself returns an additional set of terms and types
--- accumulated from the patterns for delayed checking.
 
 checkifyPatternsCaseMotive :: [Pattern]
                            -> CaseMotive
