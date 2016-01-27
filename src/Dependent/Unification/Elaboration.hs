@@ -55,9 +55,9 @@ addConstructor c consig = addElab signature [(c,consig)]
 -- which is defined as
 --
 -- @
---      Δ # x   A type   x : A true ⊢ M : A true
---    --------------------------------------------
---    Δ ⊢ let x : A = M end def⇝ Δ, x = M : A true
+--    Δ # x   ⊢ A ⇐ Type true   x : A true ⊢ M ⇐ A true
+--    -------------------------------------------------
+--      Δ ⊢ let x : A = M end def⇝ Δ, x = M : A true
 -- @
 --
 -- where @Δ # x@ means that @x@ is not defined in @Δ@.
@@ -169,13 +169,33 @@ elabAlt tycon c consig0
 
 
 
+-- | Elaboration of multiple constructors in a type declaration just chains
+-- together their effect on the signature:
+--
+-- @
+--    Σ ⊢ L0 con⇝ Σ0   Σ0 ⊢ L1 con⇝ Σ1   ...   Σn-1 ⊢ Ln con⇝ Σn
+--    ----------------------------------------------------------
+--                  Σ ⊢ L0 | ... | Ln cons⇝ Σn
+-- @
+--
+-- which has the effect of accumulating data constructor signatures.
+
+elabAlts :: String -> [(String, ConSig)] -> Elaborator ()
+elabAlts tycon = mapM_ (uncurry (elabAlt tycon))
+
+
+
+
+
 -- | Elaboration of a type constructor is similar to elaborating a data
 -- constructor, except it includes elaborations for the constructors as well.
 --
 -- @
---    Σ # c   Ai type   Σ, c tycon ⊢ L0 | ... | Ln cons⇝ Σ'
---    -----------------------------------------------------
---        Σ ⊢ data c where L0 | ... | L1 end tycon⇝ Σ'
+--    Σ # c
+--    ⊢ (x0 : A0, ..., xn : An) Type consig
+--   Σ, c : (x0 : A0, ..., xn : An) Type ⊢ L0 | ... | L1 cons⇝ Σ'
+--    --------------------------------------------------------------------
+--    Σ ⊢ data c (x0 : A0) ... (xn : An) where L0 | ... | L1 end tycon⇝ Σ'
 -- @
 --
 -- where here @Σ # c@ means that @c@ is not a type constructor in @Σ@.
@@ -187,7 +207,7 @@ elabTypeDecl (TypeDeclaration tycon tyconargs alts)
            $ throwError ("Type constructor already declared: " ++ tycon)
        checkifyConSig tyconSig
        addConstructor tycon tyconSig
-       mapM_ (uncurry (elabAlt tycon)) alts
+       elabAlts tycon alts
 
 
 

@@ -63,7 +63,7 @@ addConstructor n consig = addElab (signature.dataConstructors) [(n,consig)]
 -- which is defined as
 --
 -- @
---      Δ # x   A type   x : A true ⊢ M : A true
+--      Δ # x   A type   x : A true ⊢ M ⇐ A true
 --    --------------------------------------------
 --    Δ ⊢ let x : A = M end def⇝ Δ, x = M : A true
 -- @
@@ -155,9 +155,9 @@ elabAlts = mapM_ (uncurry elabAlt)
 -- constructor, except it includes elaborations for the constructors as well.
 --
 -- @
---    Σ # c   Ai type   Σ, c tycon ⊢ L0 | ... | Ln cons⇝ Σ'
---    -----------------------------------------------------
---        Σ ⊢ data c where L0 | ... | L1 end tycon⇝ Σ'
+--    Σ # c   Ai type   Σ, c tycon n ⊢ L0 | ... | Ln cons⇝ Σ'
+--    -------------------------------------------------------
+--    Σ ⊢ data c A0 ... An where L0 | ... | L1 end tycon⇝ Σ'
 -- @
 --
 -- where here @Σ # c@ means that @c@ is not a type constructor in @Σ@.

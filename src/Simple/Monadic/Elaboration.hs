@@ -62,7 +62,7 @@ addConstructor n consig = addElab (signature.dataConstructors) [(n,consig)]
 -- which is defined as
 --
 -- @
---      Δ # x   A type   x : A true ⊢ M : A true
+--      Δ # x   A type   x : A true ⊢ M ⇐ A true
 --    --------------------------------------------
 --    Δ ⊢ let x : A = M end def⇝ Δ, x = M : A true
 -- @
