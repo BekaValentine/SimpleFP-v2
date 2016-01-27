@@ -1,0 +1,90 @@
+data Inv {a : Type} {b : Type} (f : (x : a) -> b) (y : b) where
+  | InvEl {a : Type} {b : Type} {f : (x : a) -> b} (x : a) : Inv f (f x)
+end
+
+data Bool where
+  | True : Bool
+  | False : Bool
+end
+
+let not : (b : Bool) -> Bool
+  = \b -> case b
+          motive (b' : Bool) || Bool
+          of
+           | True -> False
+           | False -> True
+          end
+end
+
+let ex : Inv not True
+  = InvEl False
+end
+
+data Nat where
+  | Zero : Nat
+  | Suc (n : Nat) : Nat
+end
+
+let plusOne : (n : Nat) -> Nat
+  = \n -> Suc n
+end
+
+let ex2 : Inv plusOne (Suc Zero)
+  = InvEl Zero
+end
+
+let natInd : (p : (n : Nat) -> Type) -> (z : p Zero) -> (s : (n : Nat) -> (r : p n) -> p (Suc n)) -> (n : Nat) -> p n
+  = \p -> \z -> \s -> \n ->
+    case n
+    motive (n' : Nat) || p n'
+    of
+    | Zero -> z
+    | Suc n' -> s n' (natInd p z s n')
+    end
+end
+
+data Vec (a : Type) (n : Nat) where
+  | Nil {a : Type} : Vec a Zero
+  | Cons {a : Type} {n : Nat} (x : a) (xs : Vec a n) : Vec a (Suc n)
+end
+
+let vapp : {a : Type} -> {b : Type} -> {n : Nat} -> (fs : Vec ((x : a) -> b) n) -> (xs : Vec a n) -> Vec b n
+  = \{a} -> \{b} -> \{n} -> \fs -> \xs ->
+    case n || fs || xs
+    motive (n' : Nat) || (fs' : Vec ((x : a) -> b) n') || (xs' : Vec a n') || Vec b n'
+    of
+    | Zero   || Nil || Nil -> Nil
+    | Suc n' || Cons f fs' || Cons x xs' -> Cons (f x) (vapp fs' xs')
+    end
+end
+
+let vec : {a : Type} -> {n : Nat} -> (x : a) -> Vec a n
+  = \{a} -> \{n} -> \x ->
+    case n
+    motive (n' : Nat) || Vec a n'
+    of
+    | Zero   -> Nil
+    | Suc n' -> Cons x (vec x)
+    end
+end
+
+let ex3 : Vec Bool (Suc (Suc (Suc Zero)))
+  = vec True
+end
+
+data Im (p : Bool -> Type) (b : Bool) where
+  | MkIm {p : Bool -> Type} {b : Bool} (x : p b) : Im p b
+end
+
+let ifT : Type -> Type -> Bool -> Type where
+  | ifT a b True = a
+  | ifT a b False = b
+end
+
+data Top where Unit : Top end
+
+data Bot end
+
+let ex4 : Im (ifT Top Bot) False
+  = MkIm Unit
+end

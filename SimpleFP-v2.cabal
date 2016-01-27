@@ -20,7 +20,8 @@ library
                        Simple.Unification.REPL,
                        Poly.Unification.REPL,
                        Dependent.Monadic.REPL,
-                       Dependent.Unification.REPL
+                       Dependent.Unification.REPL,
+                       DependentImplicit.Unification.REPL
   -- other-modules:       
   -- other-extensions:    
   build-depends:       base,
