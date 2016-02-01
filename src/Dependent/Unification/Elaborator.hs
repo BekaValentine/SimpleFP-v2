@@ -28,7 +28,7 @@ import Control.Monad.State
 
 
 -- | A signature is a collection of constructors together with their
--- constructor signatures. This is used during type  checking and elaboration
+-- constructor signatures. This is used during type checking and elaboration
 -- to define the underlying type theory.
 
 type Signature = [(String,ConSig)]
