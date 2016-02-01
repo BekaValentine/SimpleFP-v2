@@ -13,15 +13,15 @@
 
 -- | This module defines unification of dependent types.
 
-module Dependent.Unification.Unification where
+module Modular.Unification.Unification where
 
 import Utils.ABT
 import Utils.Elaborator
 import Utils.Pretty
 import Utils.Telescope
 import Utils.Unifier
-import Dependent.Core.Term
-import Dependent.Unification.Elaborator
+import Modular.Core.Term
+import Modular.Unification.Elaborator
 
 import Control.Monad.Except
 
@@ -34,30 +34,38 @@ import Control.Monad.Except
 -- | Equating terms by trivial structural equations.
 
 instance MonadUnify TermF Elaborator where
-  equate (Defined n1) (Defined n2) =
-    if n1 == n2
-       then return []
-       else throwError $ "Mismatching names "++ n1 ++ " and " ++ n2
   equate (Ann m1 t1) (Ann m2 t2) =
     return [ Equation (instantiate0 m1) (instantiate0 m2)
            , Equation (instantiate0 t1) (instantiate0 t2)
            ]
   equate Type Type =
     return []
-  equate (Fun a1 sc1) (Fun a2 sc2) =
-    do ns <- freshRelTo (names sc1) context
+  equate (Fun plic1 a1 sc1) (Fun plic2 a2 sc2) =
+    do unless (plic1 == plic2)
+         $ throwError $ "Mismatching plicities when unifying "
+             ++ pretty (In (Fun plic1 a1 sc1)) ++ " with "
+             ++ pretty (In (Fun plic2 a2 sc2))
+       ns <- freshRelTo (names sc1) context
        let xs = map (Var . Free) ns
        return [ Equation (instantiate0 a1) (instantiate0 a2)
               , Equation (instantiate sc1 xs) (instantiate sc2 xs)
               ]
-  equate (Lam sc1) (Lam sc2) =
-    do ns <- freshRelTo (names sc1) context
+  equate (Lam plic1 sc1) (Lam plic2 sc2) =
+    do unless (plic1 == plic2)
+         $ throwError $ "Mismatching plicities when unifying "
+             ++ pretty (In (Lam plic1 sc1)) ++ " with "
+             ++ pretty (In (Lam plic2 sc2))
+       ns <- freshRelTo (names sc1) context
        let xs = map (Var . Free) ns
        return [ Equation (instantiate sc1 xs) (instantiate sc2 xs) ]
-  equate (App f1 a1) (App f2 a2) =
-    return [ Equation (instantiate0 f1) (instantiate0 f2)
-           , Equation (instantiate0 a1) (instantiate0 a2)
-           ]
+  equate (App plic1 f1 a1) (App plic2 f2 a2) =
+    do unless (plic1 == plic2)
+         $ throwError $ "Mismatching plicities when unifying "
+             ++ pretty (In (App plic1 f1 a1)) ++ " with "
+             ++ pretty (In (App plic2 f2 a2))
+       return [ Equation (instantiate0 f1) (instantiate0 f2)
+              , Equation (instantiate0 a1) (instantiate0 a2)
+              ]
   equate (Con c1 as1) (Con c2 as2) =
     do unless (c1 == c2)
          $ throwError $ "Mismatching constructors "
@@ -66,10 +74,16 @@ instance MonadUnify TermF Elaborator where
          $ throwError $ "Mismatching constructor arg lengths between "
                          ++ pretty (In (Con c1 as1)) ++ " and "
                          ++ pretty (In (Con c2 as1))
+       let (plics1,as1') = unzip as1
+           (plics2,as2') = unzip as2
+       unless (plics1 == plics2)
+         $ throwError $ "Mismatching plicities when unifying "
+             ++ pretty (In (Con c1 as1)) ++ " with "
+             ++ pretty (In (Con c2 as2))
        return $ zipWith
                   Equation
-                  (map instantiate0 as1)
-                  (map instantiate0 as2)
+                  (map instantiate0 as1')
+                  (map instantiate0 as2')
   equate (Case as1 mot1 cs1) (Case as2 mot2 cs2) =
     do unless (length as1 == length as2)
          $ throwError $ "Mismatching number of case arguments in "

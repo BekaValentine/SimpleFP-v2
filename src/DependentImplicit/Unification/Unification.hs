@@ -34,6 +34,10 @@ import Control.Monad.Except
 -- | Equating terms by trivial structural equations.
 
 instance MonadUnify TermF Elaborator where
+  equate (Defined n1) (Defined n2) =
+    if n1 == n2
+       then return []
+       else throwError $ "Mismatching names "++ n1 ++ " and " ++ n2
   equate (Ann m1 t1) (Ann m2 t2) =
     return [ Equation (instantiate0 m1) (instantiate0 m2)
            , Equation (instantiate0 t1) (instantiate0 t2)
