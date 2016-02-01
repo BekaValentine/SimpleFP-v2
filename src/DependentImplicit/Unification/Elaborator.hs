@@ -60,8 +60,7 @@ type Context = [(FreeVar,Term)]
 
 
 -- | The definition of the state to be carried by the type checking monad for
--- this particular variant. We need only the bare minimum of a signature,
--- some defined terms, and a typing context.
+-- this particular variant.
 
 data ElabState
   = ElabState
