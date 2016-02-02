@@ -234,13 +234,13 @@ elabTypeDecl (TypeDeclaration tycon tyconargs alts)
 --    -----------------------
 --    Σ ; Δ ⊢ e prog⇝ Σ' ; Δ'
 --
---      Σ ⊢ data c where L0 | ... | L1 end tycon⇝ Σ'
---    -------------------------------------------------
---    Σ ⊢ (data c where L0 | ... | L1 end ; P) prog⇝ Σ'
+--    Σ ⊢ data c where L0 | ... | L1 end tycon⇝ Σ'   Σ' ⊢ P prog⇝ Σ''
+--    ---------------------------------------------------------------
+--           Σ ⊢ data c where L0 | ... | L1 end ; P prog⇝ Σ''
 --
---       Δ ⊢ let x : A = M end def⇝ Δ'
---    ------------------------------------
---    Δ ⊢ (let x : A = M end ; P) prog⇝ Δ'
+--    Δ ⊢ let x : A = M end def⇝ Δ'   Δ' ⊢ P prog⇝ Δ''
+--    ------------------------------------------------
+--          Δ ⊢ let x : A = M end ; P prog⇝ Δ''
 -- @
 
 elabProgram :: Program -> Elaborator ()
