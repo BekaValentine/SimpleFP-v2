@@ -82,7 +82,7 @@ elabTermDecl (WhereDeclaration n ty preclauses) =
               n
               ty
               (helperFold lamH xs b))
-    (ps0,_,_):_
+    (_,ps0,_):_
       -> do let clauses = [ clauseH xs ps b
                           | (xs,ps,b) <- preclauses
                           ]
