@@ -251,7 +251,7 @@ inferify (In (Case as0 motive cs)) =
      eargs <- mapM (evaluate.SubstitutedTerm) args
        -- @args@ is already substituted
      elas <- zipWithM checkify as eargs
-     elcs <- forM cs $ \c -> checkifyClause c motive
+     elcs <- forM cs $ \c -> checkifyClause c elmotive
      let m' = caseH (map elabTerm elas) elmotive elcs
      SubstitutedTerm subm' <- substitute m'
      return (ElaboratedTerm subm', ret)
