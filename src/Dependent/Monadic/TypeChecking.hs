@@ -314,7 +314,13 @@ checkPattern (Var (Meta _)) _ =
 checkPattern (In (ConPat _ _)) (NormalTerm (In Type)) =
   throwError "Cannot pattern match on a type."
 checkPattern (In (ConPat c ps)) (NormalTerm t) =
-  do consig <- typeInSignature c
+  do consig@(ConSig (Telescope ascs _)) <- typeInSignature c
+     let lps = length ps
+         lascs = length ascs
+     unless (lps == lascs)
+       $ throwError $ "The constructor " ++ c ++ " expects " ++ show lascs
+                   ++ " " ++ (if lascs == 1 then "arg" else "args")
+                   ++ " but was given " ++ show lps
      (ctx,ms,ret,delayed) <- checkPatterns (map instantiate0 ps) consig
      NormalTerm eret <- evaluate ret
      unless (t == eret)

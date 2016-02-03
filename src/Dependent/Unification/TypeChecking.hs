@@ -329,7 +329,13 @@ checkifyPattern (Var (Free x)) t =
 checkifyPattern (Var (Meta _)) _ =
   error "Metavariables should not be the subject of pattern type checking."
 checkifyPattern (In (ConPat c ps)) t =
-  do consig <- typeInSignature c
+  do consig@(ConSig (Telescope ascs _)) <- typeInSignature c
+     let lps = length ps
+         lascs = length ascs
+     unless (lps == lascs)
+       $ throwError $ "The constructor " ++ c ++ " expects " ++ show lascs
+                   ++ " " ++ (if lascs == 1 then "arg" else "args")
+                   ++ " but was given " ++ show lps
      (ms,ret) <- checkifyPatterns (map instantiate0 ps) consig
      subret <- substitute ret
      eret <- evaluate subret
