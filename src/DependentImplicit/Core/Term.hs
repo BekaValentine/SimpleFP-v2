@@ -51,9 +51,6 @@ data TermF r
 type Term = ABT TermF
 
 
-type TermTelescope = Telescope (Scope TermF)
-
-
 -- | A case motive is a telescope that describes the arguments of a case
 -- expression and the expression as a whole. Because this variant is
 -- dependently typed, the type of a whole case expression can depend on the
