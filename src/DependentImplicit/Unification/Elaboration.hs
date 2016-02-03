@@ -72,9 +72,9 @@ elabTermDecl (TermDeclaration n ty0 def0) =
          $ throwError ("Term already defined: " ++ n)
      elty <- check ty (NormalTerm (In Type))
      ety <- evaluate (SubstitutedTerm elty) -- @ty@ has no metas to substitute.
-     eldef <- extendElab definitions [(n,(def,normTerm ety))]
+     eldef <- extendElab definitions [(n,(def,ty))]
                 $ check def ety
-     addDeclaration n eldef (normTerm ety)
+     addDeclaration n eldef ty
 elabTermDecl (WhereDeclaration n ty preclauses) =
   case preclauses of
     [] -> throwError "Cannot create an empty let-where definition."
