@@ -115,16 +115,18 @@ instance Eval (Env String Term) Term where
     do env <- environment
        case lookup x env of
          Nothing -> throwError $ "Unknown constant/defined term: " ++ x
-         Just m  -> return m
+         Just m  -> eval m
   eval (In (Ann m _)) =
     eval (instantiate0 m)
   eval (In Type) =
     return $ In Type
   eval (In (Fun plic a sc)) =
     do ea <- underM eval a
-       return $ In (Fun plic ea sc)
+       esc <- underM eval sc
+       return $ In (Fun plic ea esc)
   eval (In (Lam plic sc)) =
-    return $ In (Lam plic sc)
+    do esc <- underM eval sc
+       return $ In (Lam plic esc)
   eval (In (App plic f a)) =
     do ef <- eval (instantiate0 f)
        ea <- eval (instantiate0 a)
