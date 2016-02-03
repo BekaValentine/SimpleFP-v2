@@ -556,10 +556,9 @@ checkifyConArgs ascs0 bsc ms0 t =
                      suba <- substitute a
                      ea <- evaluate suba
                      ElaboratedTerm m' <- checkify m ea
-                     subm' <- substitute m'
-                     em' <- evaluate subm'
-                     unifyHelper eMToElabInto em'
-                     return (plic, ElaboratedTerm (normTerm em'))
+                     SubstitutedTerm subm' <- substitute m'
+                     unifyHelper eMToElabInto (NormalTerm subm')
+                     return (plic, ElaboratedTerm subm')
      forM_ eqs $ \(l,r) ->
        do subl <- substitute l
           el <- evaluate subl
