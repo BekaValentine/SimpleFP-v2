@@ -678,6 +678,8 @@ checkifyPattern (Var (Free x)) t =
             )
 checkifyPattern (Var (Meta _)) _ =
   error "Metavariables should not be the subject of pattern type checking."
+checkifyPattern (In (ConPat _ _)) (NormalTerm (In Type)) =
+  throwError "Cannot pattern match on a type."
 checkifyPattern (In (ConPat c ps)) (NormalTerm t) =
   do ConSig plics (Telescope ascs bsc) <- typeInSignature c
      (ps',elms') <-
