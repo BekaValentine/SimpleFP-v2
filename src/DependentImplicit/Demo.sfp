@@ -85,6 +85,26 @@ data Top where Unit : Top end
 
 data Bot end
 
-let ex4 : Im (ifT Top Bot) False
+let ex4 : Im (ifT Top Bot) True
   = MkIm Unit
+end
+
+let ex5 : Im (ifT Top Bot) True
+  = MkIm (((\x -> x) : Top -> Top) Unit)
+end
+
+let plus : Nat -> Nat -> Nat where
+  | plus Zero n = n
+  | plus (Suc m) n = Suc (plus m n)
+end
+
+let append : {a : Type} -> {m : Nat} -> {n : Nat}
+             -> (xs : Vec a m) -> (ys : Vec a n) -> Vec a (plus m n)
+  = \{a} -> \{m} -> \{n} -> \xs -> \ys ->
+    case m || xs
+    motive (m' : Nat) || (xs' : Vec a m') || Vec a (plus m' n)
+    of
+    | Zero || Nil -> ys
+    | Suc m' || Cons x xs' -> Cons x (append xs' ys)
+    end
 end

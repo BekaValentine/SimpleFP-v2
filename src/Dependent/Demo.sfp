@@ -51,3 +51,19 @@ let vapp : (a : Type) -> (b : Type) -> (n : Nat) -> (fs : Vec ((x : a) -> b) n) 
     | Suc n' || Cons .((x : a) -> b) .n' f fs' || Cons .a .n' x xs' -> Cons b n' (f x) (vapp a b n' fs' xs')
     end
 end
+
+let plus : Nat -> Nat -> Nat where
+  | plus Zero n = n
+  | plus (Suc m) n = Suc (plus m n)
+end
+
+let append : (a : Type) -> (m : Nat) -> (n : Nat)
+             -> (xs : Vec a m) -> (ys : Vec a n) -> Vec a (plus m n)
+  = \a -> \m -> \n -> \xs -> \ys ->
+    case m || xs
+    motive (m' : Nat) || (xs' : Vec a m') || Vec a (plus m' n)
+    of
+    | Zero || Nil .a -> ys
+    | Suc m' || Cons .a .m' x xs' -> Cons a (plus m' n) x (append a m' n xs' ys)
+    end
+end
