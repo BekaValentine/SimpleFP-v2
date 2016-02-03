@@ -71,5 +71,6 @@ freshen others ns = reverse (go (reverse ns))
 
 freshenName :: [String] -> String -> String
 freshenName others n
+  | n == "_" = n
   | n `elem` others = freshenName others (n ++ "'")
   | otherwise = n
