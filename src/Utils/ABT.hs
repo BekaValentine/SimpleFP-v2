@@ -477,7 +477,7 @@ instantiate (Scope ns fns b) xs
   | length ns /= length xs =
       error "Cannot instantiate along differing numbers of arguments."
   | null ns = b
-  | otherwise = unshift l l (subst 0 subs b')
+  | otherwise = subst 0 subs (unshift l l b')
     where
       l = length xs
       (freshNs, b') = descope (Scope ns fns b)
