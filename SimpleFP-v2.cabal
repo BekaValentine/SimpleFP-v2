@@ -21,7 +21,8 @@ library
                        Poly.Unification.REPL,
                        Dependent.Monadic.REPL,
                        Dependent.Unification.REPL,
-                       DependentImplicit.Unification.REPL
+                       DependentImplicit.Unification.REPL,
+                       Modular.Unification.REPL
   -- other-modules:       
   -- other-extensions:    
   build-depends:       base,

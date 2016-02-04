@@ -17,6 +17,7 @@ module Modular.Unification.Unification where
 
 import Utils.ABT
 import Utils.Elaborator
+import Utils.Names
 import Utils.Pretty
 import Utils.Telescope
 import Utils.Unifier
@@ -34,6 +35,11 @@ import Control.Monad.Except
 -- | Equating terms by trivial structural equations.
 
 instance MonadUnify TermF Elaborator where
+  equate (Defined n1) (Defined n2) =
+    if n1 == n2
+       then return []
+       else throwError $ "Mismatching names "
+                         ++ showName n1 ++ " and " ++ showName n2
   equate (Ann m1 t1) (Ann m2 t2) =
     return [ Equation (instantiate0 m1) (instantiate0 m2)
            , Equation (instantiate0 t1) (instantiate0 t2)
@@ -69,7 +75,7 @@ instance MonadUnify TermF Elaborator where
   equate (Con c1 as1) (Con c2 as2) =
     do unless (c1 == c2)
          $ throwError $ "Mismatching constructors "
-                     ++ c1 ++ " and " ++ c2
+                     ++ showName c1 ++ " and " ++ showName c2
        unless (length as1 == length as2)
          $ throwError $ "Mismatching constructor arg lengths between "
                          ++ pretty (In (Con c1 as1)) ++ " and "

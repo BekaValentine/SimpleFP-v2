@@ -1,0 +1,67 @@
+module Nat where
+  
+  data Nat where
+  | Zero : Nat
+  | Suc (n : Nat) : Nat
+  end
+  
+  let plus : (m : Nat) -> (n : Nat) -> Nat
+    = \m -> \n ->
+      case m
+      motive (m' : Nat) || Nat
+      of
+      | Zero -> n
+      | Suc m' -> Suc (plus m' n)
+      end
+  end
+  
+end
+
+
+module Vec1 opening Nat where
+  
+  data Vec (a : Type) (n : Nat) where
+  | Nil {a : Type} : Vec a Zero
+  | Cons {a : Type} {n : Nat} (x : a) (xs : Vec a n) : Vec a (Suc n)
+  end
+  
+end
+
+
+module Vec2 opening Nat as N where
+  
+  data Vec (a : Type) (n : N.Nat) where
+  | Nil {a : Type} : Vec a N.Zero
+  | Cons {a : Type} {n : N.Nat} (x : a) (xs : Vec a n) : Vec a (N.Suc n)
+  end
+  
+end
+
+
+module Vec3
+opening
+| Nat renaming (Zero to Z, Suc to S)
+where
+  
+  data Vec (a : Type) (n : Nat) where
+  | Nil {a : Type} : Vec a Z
+  | Cons {a : Type} {n : Nat} (x : a) (xs : Vec a n) : Vec a (S n)
+  end
+  
+end
+
+
+module VecAppend1 opening Vec1 | Nat where
+  
+  let append : {a : Type} -> {m : Nat} -> {n : Nat}
+               -> (xs : Vec a m) -> (ys : Vec a n) -> Vec a (plus m n)
+    = \{a} -> \{m} -> \{n} -> \xs -> \ys ->
+      case m || xs
+      motive (m' : Nat) || (xs' : Vec a m') || Vec a (plus m' n)
+      of
+      | Zero || Nil -> ys
+      | Suc m' || Cons x xs' -> Cons x (append xs' ys)
+      end
+  end
+  
+end
