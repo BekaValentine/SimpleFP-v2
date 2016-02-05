@@ -154,10 +154,10 @@ instance Eval (Env String Term) Term where
 
 
 instance Eval (Env String Term) CaseMotive where
-  eval (CaseMotive (Telescope ascs bsc)) =
+  eval (CaseMotive (BindingTelescope ascs bsc)) =
     do eascs <- mapM (underM eval) ascs
        ebsc <- underM eval bsc
-       return $ CaseMotive (Telescope eascs ebsc)
+       return $ CaseMotive (BindingTelescope eascs ebsc)
 
 
 instance Eval (Env String Term) Clause where

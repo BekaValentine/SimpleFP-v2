@@ -138,7 +138,7 @@ elabTermDecl (WhereDeclaration n ty preclauses) =
           scs = zipWith scope (inits ns) asb
           ascs = init scs
           bsc = last scs
-      in CaseMotive (Telescope ascs bsc)
+      in CaseMotive (BindingTelescope ascs bsc)
       where
         go :: Int -> Term -> ([String],[Term])
         go 0 b = ([],[b])
@@ -185,7 +185,7 @@ elabAlt tycon c consig0
        addConstructor c consig'
   where
     validConSig :: ConSig -> Elaborator ()
-    validConSig (ConSig _ (Telescope _ retsc)) =
+    validConSig (ConSig _ (BindingTelescope _ retsc)) =
       case body retsc of
         In (Con tc _) ->
           unless (tc == tycon)

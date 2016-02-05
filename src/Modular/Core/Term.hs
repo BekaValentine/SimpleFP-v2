@@ -62,7 +62,7 @@ type Term = ABT TermF
 -- For a more general look at motives, McBride's Elimination with a Motive is
 -- a very good resource.
 
-newtype CaseMotiveF r = CaseMotive (Telescope r)
+newtype CaseMotiveF r = CaseMotive (BindingTelescope r)
   deriving (Functor,Foldable)
 
 
@@ -214,7 +214,7 @@ caseH :: [Term] -> CaseMotive -> [Clause] -> Term
 caseH as mot cls = In (Case (map (scope []) as) mot cls)
 
 caseMotiveH :: [String] -> [Term] -> Term -> CaseMotive
-caseMotiveH xs as b = CaseMotive (telescopeH xs as b)
+caseMotiveH xs as b = CaseMotive (bindingTelescopeH xs as b)
 
 clauseH :: [String] -> [Pattern] -> Term -> Clause
 clauseH xs ps b = Clause (map (patternScope xs) ps) (scope xs b)
@@ -364,7 +364,7 @@ instance Parens CaseMotive where
   
   parenLoc _ = []
   
-  parenRec (CaseMotive (Telescope ascs bsc)) =
+  parenRec (CaseMotive (BindingTelescope ascs bsc)) =
     binders ++ " || " ++ pretty (body bsc)
     where
       binders =

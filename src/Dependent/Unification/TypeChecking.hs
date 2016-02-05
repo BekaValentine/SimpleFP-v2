@@ -201,7 +201,7 @@ inferify (In (App f0 a0))
 inferify (In (Con c as0)) =
   do let as = map instantiate0 as0
      ConSig tele <- typeInSignature c
-     let (args,ret) = instantiateTelescope tele as
+     let (args,ret) = instantiateBindingTelescope tele as
          las = length as
          largs = length args
      unless (las == largs)
@@ -217,7 +217,7 @@ inferify (In (Case as0 motive cs)) =
   do let as = map instantiate0 as0
      checkifyCaseMotive motive
      let CaseMotive tele = motive
-         (args,ret) = instantiateTelescope tele as
+         (args,ret) = instantiateBindingTelescope tele as
          las = length as
          largs = length args
      unless (las == largs)
@@ -277,8 +277,8 @@ checkify m t =
 -- in terms of telescopes as as
 --
 -- @
---    Γ ⊢ T telescope
---    ---------------
+--    Γ ⊢ T btelescope
+--    -----------------
 --    Γ ⊢ mot(T) motive
 -- @
 
@@ -329,7 +329,7 @@ checkifyPattern (Var (Free x)) t =
 checkifyPattern (Var (Meta _)) _ =
   error "Metavariables should not be the subject of pattern type checking."
 checkifyPattern (In (ConPat c ps)) t =
-  do consig@(ConSig (Telescope ascs _)) <- typeInSignature c
+  do consig@(ConSig (BindingTelescope ascs _)) <- typeInSignature c
      let lps = length ps
          lascs = length ascs
      unless (lps == lascs)
@@ -366,7 +366,7 @@ checkifyPattern (In (AssertionPat m)) t =
 checkifyPatterns :: [Pattern]
                  -> ConSig
                  -> TypeChecker ([Term], Term)
-checkifyPatterns ps0 (ConSig (Telescope ascs bsc)) =
+checkifyPatterns ps0 (ConSig (BindingTelescope ascs bsc)) =
   do ms <- go [] ps0 ascs
      return (ms, instantiate bsc ms)
   where
@@ -403,7 +403,7 @@ checkifyPatterns ps0 (ConSig (Telescope ascs bsc)) =
 checkifyPatternsCaseMotive :: [Pattern]
                            -> CaseMotive
                            -> TypeChecker Term
-checkifyPatternsCaseMotive ps0 (CaseMotive (Telescope ascs bsc)) =
+checkifyPatternsCaseMotive ps0 (CaseMotive (BindingTelescope ascs bsc)) =
   do ms <- go [] ps0 ascs
      return $ instantiate bsc ms
   where
@@ -439,7 +439,7 @@ checkifyPatternsCaseMotive ps0 (CaseMotive (Telescope ascs bsc)) =
 -- This also handles the checking of delayed assertion patterns.
 
 checkifyClause :: Clause -> CaseMotive -> TypeChecker ()
-checkifyClause (Clause pscs sc) mot@(CaseMotive (Telescope ascs _)) =
+checkifyClause (Clause pscs sc) mot@(CaseMotive (BindingTelescope ascs _)) =
   do let lps = length pscs
          las = length ascs
      unless (lps == las)
@@ -471,7 +471,7 @@ checkifyClause (Clause pscs sc) mot@(CaseMotive (Telescope ascs _)) =
 -- directly in terms of telescopes as
 --
 -- @
---      Γ ⊢ T telescope
+--      Γ ⊢ T btelescope
 --    --------------------
 --    Γ ⊢ sig(T) signature
 -- @
@@ -483,7 +483,7 @@ checkifyConSig (ConSig tele) = checkifyTelescope tele
 
 
 
--- | This corresponds to the judgment @Γ ⊢ T telescope@ which is used
+-- | This corresponds to the judgment @Γ ⊢ T btelescope@ which is used
 -- to check that a telescope is well formed as a stack of binders. This is
 -- defined inductively as
 --
@@ -496,10 +496,10 @@ checkifyConSig (ConSig tele) = checkifyTelescope tele
 --    Γ ⊢ (x0:A0)...(xn:An)B telescope
 -- @
 
-checkifyTelescope :: Telescope (Scope TermF) -> TypeChecker ()
-checkifyTelescope tele@(Telescope _ retsc) =
+checkifyTelescope :: BindingTelescope (Scope TermF) -> TypeChecker ()
+checkifyTelescope tele@(BindingTelescope _ retsc) =
   do ns <- freshRelTo (names retsc) context
-     forM_ (instantiateTelescopeNames tele ns) $ \(ctx', t) ->
+     forM_ (instantiateBindingTelescopeNames tele ns) $ \(ctx', t) ->
        extendElab context ctx'
          $ checkify t (NormalTerm (In Type))
 

@@ -115,10 +115,10 @@ instance MonadUnify TermF Elaborator where
 
 equateCaseMotive :: CaseMotive -> CaseMotive -> Elaborator [Equation Term]
 equateCaseMotive mot1@(CaseMotive tele1) mot2@(CaseMotive tele2) =
-  do ns <- freshRelTo (namesTelescope tele1) context
+  do ns <- freshRelTo (namesBindingTelescope tele1) context
      let xs = map (Var . Free) ns
-     let (as1, b1) = instantiateTelescope tele1 xs
-         (as2, b2) = instantiateTelescope tele2 xs
+         (as1, b1) = instantiateBindingTelescope tele1 xs
+         (as2, b2) = instantiateBindingTelescope tele2 xs
      unless (length as1 == length as2)
        $ throwError $ "Motives not equal: " ++ pretty mot1 ++ " and "
                    ++ pretty mot2

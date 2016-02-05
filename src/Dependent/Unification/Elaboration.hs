@@ -153,7 +153,7 @@ elabAlt tycon c consig0
        addConstructor c consig
   where
     validConSig :: ConSig -> Elaborator ()
-    validConSig (ConSig (Telescope _ retsc)) =
+    validConSig (ConSig (BindingTelescope _ retsc)) =
       case body retsc of
         In (Con tc _) ->
           unless (tc == tycon)

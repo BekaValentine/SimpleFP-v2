@@ -25,27 +25,30 @@ import Data.List (inits)
 
 
 
--- | A telescope is a series of binders, ending in a binder. This is used for 
--- constructions that have iterated binding over an ultimate scope, such as
--- case motives.
+-- | A binding telescope is a series of binders, ending in a binder. This is
+-- used for constructions that have iterated binding over an ultimate scope,
+-- such as case motives.
 
-data Telescope a
-  = Telescope [a] a
+data BindingTelescope a
+  = BindingTelescope [a] a
   deriving (Functor,Foldable)
 
 
-instance Eq1 Telescope where
-  eq1 (Telescope as b) (Telescope as' b') =
+instance Eq1 BindingTelescope where
+  eq1 (BindingTelescope as b) (BindingTelescope as' b') =
     as == as' && b == b'
 
 
-namesTelescope :: Telescope (Scope f) -> [String]
-namesTelescope (Telescope _ bsc) = names bsc
+namesBindingTelescope :: BindingTelescope (Scope f) -> [String]
+namesBindingTelescope (BindingTelescope _ bsc) = names bsc
 
 
-telescopeH :: (Functor f, Foldable f)
-           => [String] -> [ABT f] -> ABT f -> Telescope (Scope f)
-telescopeH xs as b = Telescope ascs bsc
+bindingTelescopeH :: (Functor f, Foldable f)
+                  => [String]
+                  -> [ABT f]
+                  -> ABT f
+                  -> BindingTelescope (Scope f)
+bindingTelescopeH xs as b = BindingTelescope ascs bsc
   where
     xss = inits xs
     scs = zipWith scope xss (as ++ [b])
@@ -85,9 +88,11 @@ telescopeH xs as b = Telescope ascs bsc
 --          ]
 -- @
 
-instantiateTelescope :: (Functor f, Foldable f)
-                     => Telescope (Scope f) -> [ABT f] -> ([ABT f], ABT f)
-instantiateTelescope (Telescope ascs bsc) ms = (as,b)
+instantiateBindingTelescope :: (Functor f, Foldable f)
+                            => BindingTelescope (Scope f)
+                            -> [ABT f]
+                            -> ([ABT f], ABT f)
+instantiateBindingTelescope (BindingTelescope ascs bsc) ms = (as,b)
   where
     mss = inits ms
     asb = zipWith instantiate (ascs ++ [bsc]) mss
@@ -131,11 +136,11 @@ instantiateTelescope (Telescope ascs bsc) ms = (as,b)
 -- each scope and revealing the body of the scope, along with the relevant new
 -- typing declarations for its variables.
 
-instantiateTelescopeNames :: (Functor f, Foldable f)
-                          => Telescope (Scope f)
-                          -> [FreeVar]
-                          -> [([(FreeVar, ABT f)], ABT f)]
-instantiateTelescopeNames (Telescope ascs bsc) ns = cs
+instantiateBindingTelescopeNames :: (Functor f, Foldable f)
+                                 => BindingTelescope (Scope f)
+                                 -> [FreeVar]
+                                 -> [([(FreeVar, ABT f)], ABT f)]
+instantiateBindingTelescopeNames (BindingTelescope ascs bsc) ns = cs
   where
     mss = inits (map (Var . Free) ns)
     asb = zipWith instantiate (ascs ++ [bsc]) mss

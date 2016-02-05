@@ -22,11 +22,11 @@ import Modular.Core.Term
 
 
 
-data ConSig = ConSig [Plicity] (Telescope (Scope TermF))
+data ConSig = ConSig [Plicity] (BindingTelescope (Scope TermF))
 
 
 instance Show ConSig where
-  show (ConSig plics (Telescope ascs bsc)) =
+  show (ConSig plics (BindingTelescope ascs bsc)) =
     binders ++ " " ++ pretty (body bsc)
     where
       binders =
@@ -43,7 +43,7 @@ instance Show ConSig where
 
 
 conSigH :: [DeclArg] -> Term -> ConSig
-conSigH declas b = ConSig plics (telescopeH xs as b)
+conSigH declas b = ConSig plics (bindingTelescopeH xs as b)
   where (plics,xas) = unzip [ (plic,(x,a)) | DeclArg plic x a <- declas ]
         (xs,as) = unzip xas
 

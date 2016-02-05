@@ -20,11 +20,11 @@ import Dependent.Core.Term
 
 
 
-newtype ConSig = ConSig (Telescope (Scope TermF))
+newtype ConSig = ConSig (BindingTelescope (Scope TermF))
 
 
 instance Show ConSig where
-  show (ConSig (Telescope ascs bsc)) =
+  show (ConSig (BindingTelescope ascs bsc)) =
     binders ++ " " ++ pretty (body bsc)
     where
       binders =
@@ -38,7 +38,7 @@ instance Show ConSig where
 
 
 conSigH :: [DeclArg] -> Term -> ConSig
-conSigH declas b = ConSig (telescopeH xs as b)
+conSigH declas b = ConSig (bindingTelescopeH xs as b)
   where (xs,as) = unzip [ (x,a) | DeclArg x a <- declas ]
 
 

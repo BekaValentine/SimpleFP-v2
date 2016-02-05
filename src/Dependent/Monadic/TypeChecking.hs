@@ -175,7 +175,7 @@ infer (In (App f0 a0)) =
 infer (In (Con c as0)) =
   do let as = map instantiate0 as0
      ConSig tele <- typeInSignature c
-     let (args,ret) = instantiateTelescope tele as
+     let (args,ret) = instantiateBindingTelescope tele as
          las = length as
          largs = length args
      unless (las == largs)
@@ -189,7 +189,7 @@ infer (In (Case as0 motive cs)) =
   do let as = map instantiate0 as0
      checkCaseMotive motive
      let CaseMotive tele = motive
-         (args,ret) = instantiateTelescope tele as
+         (args,ret) = instantiateBindingTelescope tele as
          las = length as
          largs = length args
      unless (las == largs)
@@ -247,13 +247,13 @@ check m (NormalTerm t) =
 -- in terms of telescopes as as
 --
 -- @
---    Γ ⊢ T telescope
---    ---------------
+--    Γ ⊢ T btelescope
+--    -----------------
 --    Γ ⊢ mot(T) motive
 -- @
 
 checkCaseMotive :: CaseMotive -> TypeChecker ()
-checkCaseMotive (CaseMotive tele) = checkTelescope tele
+checkCaseMotive (CaseMotive tele) = checkBindingTelescope tele
 
 
 
@@ -314,7 +314,7 @@ checkPattern (Var (Meta _)) _ =
 checkPattern (In (ConPat _ _)) (NormalTerm (In Type)) =
   throwError "Cannot pattern match on a type."
 checkPattern (In (ConPat c ps)) (NormalTerm t) =
-  do consig@(ConSig (Telescope ascs _)) <- typeInSignature c
+  do consig@(ConSig (BindingTelescope ascs _)) <- typeInSignature c
      let lps = length ps
          lascs = length ascs
      unless (lps == lascs)
@@ -358,7 +358,7 @@ checkPattern (In (AssertionPat m)) (NormalTerm t) =
 checkPatterns :: [Pattern]
               -> ConSig
               -> TypeChecker (Context,[Term],Term,[(Term,Term)])
-checkPatterns ps0 (ConSig (Telescope ascs bsc)) =
+checkPatterns ps0 (ConSig (BindingTelescope ascs bsc)) =
   do (ctx, ms, delayed) <- go [] ps0 ascs
      return (ctx, ms, instantiate bsc ms, delayed)
   where
@@ -401,7 +401,7 @@ checkPatterns ps0 (ConSig (Telescope ascs bsc)) =
 checkPatternsCaseMotive :: [Pattern]
                         -> CaseMotive
                         -> TypeChecker (Context,Term,[(Term,Term)])
-checkPatternsCaseMotive ps0 (CaseMotive (Telescope ascs bsc)) =
+checkPatternsCaseMotive ps0 (CaseMotive (BindingTelescope ascs bsc)) =
   do (ctx, ms, delayed) <- go [] ps0 ascs
      return (ctx, instantiate bsc ms, delayed)
   where
@@ -435,7 +435,7 @@ checkPatternsCaseMotive ps0 (CaseMotive (Telescope ascs bsc)) =
 -- This also handles the checking of delayed assertion patterns.
 
 checkClause :: Clause -> CaseMotive -> TypeChecker ()
-checkClause (Clause pscs sc) mot@(CaseMotive (Telescope ascs _)) =
+checkClause (Clause pscs sc) mot@(CaseMotive (BindingTelescope ascs _)) =
   do let lps = length pscs
          las = length ascs
      unless (lps == las)
@@ -465,19 +465,19 @@ checkClause (Clause pscs sc) mot@(CaseMotive (Telescope ascs _)) =
 -- directly in terms of telescopes as
 --
 -- @
---      Γ ⊢ T telescope
+--      Γ ⊢ T btelescope
 --    --------------------
 --    Γ ⊢ sig(T) signature
 -- @
 
 checkConSig :: ConSig -> TypeChecker ()
-checkConSig (ConSig tele) = checkTelescope tele
+checkConSig (ConSig tele) = checkBindingTelescope tele
 
 
 
 
 
--- | This corresponds to the judgment @Γ ⊢ T telescope@ which is used
+-- | This corresponds to the judgment @Γ ⊢ T btelescope@ which is used
 -- to check that a telescope is well formed as a stack of binders. This is
 -- defined inductively as
 --
@@ -490,9 +490,9 @@ checkConSig (ConSig tele) = checkTelescope tele
 --    Γ ⊢ (x0:A0)...(xn:An)B telescope
 -- @
 
-checkTelescope :: Telescope (Scope TermF) -> TypeChecker ()
-checkTelescope tele@(Telescope _ retsc) =
+checkBindingTelescope :: BindingTelescope (Scope TermF) -> TypeChecker ()
+checkBindingTelescope tele@(BindingTelescope _ retsc) =
   do ns <- freshRelTo (names retsc) context
-     forM_ (instantiateTelescopeNames tele ns) $ \(ctx', t) ->
+     forM_ (instantiateBindingTelescopeNames tele ns) $ \(ctx', t) ->
        extendElab context ctx'
          $ check t (NormalTerm (In Type))
