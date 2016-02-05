@@ -382,9 +382,10 @@ inferifyConArgs ascs0 bsc0 ms0 = go [] ascs0 bsc0 ms0
 --    ----------------------------------------------------- lambda
 --    Γ ⊢ lam(Pl;x.M) ▹ lam(Pl;x.M') ⇐ Fun(Pl; A; x.B) true
 --    
---    Σ ∋ c sig(Pl*;(A*)B)   Γ ⊢ zip(Pl*,A*) at B of M* ▹ M*' ⇐ B'
---    ------------------------------------------------------------- con data
---                 Γ ⊢ con[c](M*) ▹ con[c](M*') ⇐ B'
+--    Σ ∋ c sig(Pl*;(A*)B)
+--    Γ ⊢ zip(Pl*,A*) at B of M* ▹ M*' ⇐ B' true
+--    ------------------------------------------ con data
+--    Γ ⊢ con[c](M*) ▹ con[c](M*') ⇐ B' true
 --    
 --    Γ ⊢ M ▹ M' ⇒ A' true   A = A'
 --    ----------------------------- direction change
