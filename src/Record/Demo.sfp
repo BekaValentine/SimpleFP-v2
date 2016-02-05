@@ -1,0 +1,17 @@
+module Demo where
+  
+  data Nat where
+  | Zero : Nat
+  | Suc (n : Nat) : Nat
+  end
+  
+  data Even (n : Nat) where
+  | ZeroEven : Even Zero
+  | SucSucEven {n : Nat} (p : Even n) : Even (Suc (Suc n))
+  end
+  
+  let foo : (x : Nat) -> Rec { p : Nat }
+    = \x -> { p = x }
+  end
+  
+end
