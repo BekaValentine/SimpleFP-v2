@@ -66,7 +66,7 @@ repl src = case loadProgram src of
                        ++ [ (Right p,p) | (p,_) <- defs ]
            case runElaborator (infer tm) sig defs ctx als "" [] [] [] of
              Left e  -> Left e
-             Right _ -> runReaderT (eval tm) env
+             Right ((etm,_),_) -> runReaderT (eval etm) env
     
     evalAndPrint :: Signature
                  -> Definitions

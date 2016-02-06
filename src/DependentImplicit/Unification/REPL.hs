@@ -52,7 +52,7 @@ repl src = case loadProgram src of
            let tm = freeToDefined (In . Defined) tm0
            case runElaborator (infer tm) sig defs ctx of
              Left e  -> Left e
-             Right _ -> runReaderT (eval tm) env
+             Right ((etm,_),_) -> runReaderT (eval etm) env
     
     evalAndPrint :: Signature -> Definitions -> Context -> Env String Term -> String -> IO ()
     evalAndPrint _ _ _ _ "" = return ()
