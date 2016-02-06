@@ -84,24 +84,26 @@ unifyHelper (NormalTerm x) (NormalTerm y) =
 -- name such as @foo@ or a dotted name like @Mod.foo@, and @n'@ is an
 -- absolute name @Mod.foo@.
 
-unalias :: Either String (String,String) -> TypeChecker (String,String)
-unalias (Left n)
-  = do als <- getElab aliases
-       case lookup (Left n) als of
-         Nothing ->
-           throwError $ "The symbol " ++ n ++ " is not an alias for any "
-                        ++ "module-declared symbol."
-         Just p ->
-           return p
-unalias (Right (m,n))
-  = do als <- getElab aliases
-       case lookup (Right (m,n)) als of
-         Nothing ->
-           throwError $ "The symbol " ++ m ++ "." ++ n
-                        ++ " is not an alias for any "
-                        ++ "module-declared symbol."
-         Just p ->
-           return p
+unalias :: Name -> TypeChecker (String,String)
+unalias (BareLocal n) =
+  do als <- getElab aliases
+     case lookup (Left n) als of
+       Nothing ->
+         throwError $ "The symbol " ++ n ++ " is not an alias for any "
+                      ++ "module-declared symbol."
+       Just p ->
+         return p
+unalias (DottedLocal m n) =
+  do als <- getElab aliases
+     case lookup (Right (m,n)) als of
+       Nothing ->
+         throwError $ "The symbol " ++ m ++ "." ++ n
+                      ++ " is not an alias for any "
+                      ++ "module-declared symbol."
+       Just p ->
+         return p
+unalias (Absolute m n) =
+  return (m,n)
 
 
 -- | We can get the consig of a constructor by looking in the signature.
@@ -109,14 +111,9 @@ unalias (Right (m,n))
 -- aliases, this also requires some amount of elaboration.
 
 typeInSignature :: Name -> Elaborator (Name,ConSig)
-typeInSignature (BareLocal n0) =
-  do (m,n) <- unalias (Left n0)
-     typeInSignature (Absolute m n)
-typeInSignature (DottedLocal m0 n0) =
-  do (m,n) <- unalias (Right (m0,n0))
-     typeInSignature (Absolute m n)
-typeInSignature (Absolute m n) =
-  do consigs <- getElab signature
+typeInSignature n0 =
+  do (m,n) <- unalias n0
+     consigs <- getElab signature
      case lookup (m,n) consigs of
        Nothing ->
          throwError $ "Unknown constructor: " ++ showName (Absolute m n)
@@ -129,14 +126,9 @@ typeInSignature (Absolute m n) =
 -- aliases, this also requires some amount of elaboration.
 
 typeInDefinitions :: Name -> Elaborator (Name,Term)
-typeInDefinitions (BareLocal n0) =
-  do (m,n) <- unalias (Left n0)
-     typeInDefinitions (Absolute m n)
-typeInDefinitions (DottedLocal m0 n0) =
-  do (m,n) <- unalias (Right (m0,n0))
-     typeInDefinitions (Absolute m n)
-typeInDefinitions (Absolute m n) =
-  do defs <- getElab definitions
+typeInDefinitions n0 =
+  do (m,n) <- unalias n0
+     defs <- getElab definitions
      case lookup (m,n) defs of
        Nothing ->
          throwError $ "Unknown constant/defined term: "
