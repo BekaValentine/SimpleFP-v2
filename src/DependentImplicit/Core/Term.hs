@@ -312,7 +312,7 @@ instance Parens Term where
       ++ " -> " ++ parenthesize (Just LamBody)
                      (body sc)
     where
-      wrap Expl x = "(" ++ x ++ ")"
+      wrap Expl x = x
       wrap Impl x = "{" ++ x ++ "}"
   parenRec (In (App plic f a)) =
     parenthesize (Just AppFun) (instantiate0 f)
