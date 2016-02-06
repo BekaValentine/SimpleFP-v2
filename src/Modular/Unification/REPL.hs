@@ -62,7 +62,9 @@ repl src = case loadProgram src of
     loadTerm sig defs ctx env src
       = do tm0 <- parseTerm src
            let tm = freeToDefined (In . Defined . BareLocal) tm0
-           case runElaborator (infer tm) sig defs ctx [] "" [] of
+               als = [ (Right p,p) | (p,_) <- sig ]
+                       ++ [ (Right p,p) | (p,_) <- defs ]
+           case runElaborator (infer tm) sig defs ctx als "" [] of
              Left e  -> Left e
              Right _ -> runReaderT (eval tm) env
     
