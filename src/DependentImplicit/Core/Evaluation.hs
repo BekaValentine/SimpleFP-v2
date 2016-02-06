@@ -79,7 +79,7 @@ matchPattern (In (ConPat c ps)) (In (Con c' as))
       $ forM (zip ps as)
           $ \((plic,psc),(plic',asc)) -> 
               if (plic == plic')
-                 then matchPattern (body psc) (body asc)--(zipWithM matchPattern (map body ps) (map body as))
+                 then matchPattern (body psc) (body asc)
                  else Failure
   | otherwise = Failure
 matchPattern (In (AssertionPat _)) v = Success [v]
