@@ -1,0 +1,27 @@
+module Demo where
+  
+  data family Bool end
+  
+  data instance Bool where
+  | True : Bool
+  end
+  
+  let family id (b : Bool) : Bool end
+  
+  let instance id where
+  | id True = True
+  end
+  
+end
+
+module Demo2 opening Demo where
+  
+  data instance Bool where
+  | False : Bool
+  end
+  
+  let instance id where
+  | id False = False
+  end
+  
+end
