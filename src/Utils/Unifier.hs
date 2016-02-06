@@ -82,6 +82,25 @@ substituteContext subsl ctxl =
 
 
 
+-- | Given a way to get the context and a way to get the current substitution,
+--  we can substitute into it with the current substitution. This version
+-- differs from the last in that it uses a functorial judgment in the context
+-- instead of just a term. This is necessary for fancier type theories that
+-- have judgments other than @A true@.
+
+substituteContextJ :: (Eq a, Functor f, Foldable f, MonadState s m, Functor j)
+                   => Lens' s (Substitution f)
+                   -> Lens' s [(a, j (ABT f))]
+                   -> m ()
+substituteContextJ subsl ctxl =
+  do ctx <- getElab ctxl
+     subs2 <- getElab subsl
+     putElab ctxl (map (\(x,t) -> (x,fmap (substMetas subs2) t)) ctx)
+
+
+
+
+
 -- | Given some new substitutions, we can add them to the existing
 -- substitutions and in the process update a context-like value.
 
@@ -93,6 +112,25 @@ updateSubstitution :: (Eq a, Functor f, Foldable f, MonadState s m)
 updateSubstitution subsl ctxl subs =
   do completeSubstitution subsl subs
      substituteContext subsl ctxl
+
+
+
+
+
+-- | Given some new substitutions, we can add them to the existing
+-- substitutions and in the process update a context-like value using any
+-- functorial judgment.
+
+updateSubstitutionJ :: ( Eq a, Functor f, Foldable f
+                       , MonadState s m, Functor j
+                       )
+                     => Lens' s (Substitution f)
+                     -> Lens' s [(a,j (ABT f))]
+                     -> Substitution f
+                     -> m ()
+updateSubstitutionJ subsl ctxl subs =
+  do completeSubstitution subsl subs
+     substituteContextJ subsl ctxl
     
 
 
@@ -205,3 +243,22 @@ unify :: ( Eq a, Functor f, Foldable f, Pretty (ABT f)
 unify subsl ctxl l r =
   do newSubs <- solve [Equation l r]
      updateSubstitution subsl ctxl newSubs
+
+
+
+
+
+-- | Unification relative to a substitution and a context will solve the
+-- relevant equations to produce some new substitutions, and then update
+-- the substitutions to ensure that the new substitutions are accounted for.
+-- This version works for arbitrary functorial judgments.
+
+unifyJ :: ( Eq a, Functor f, Foldable f, Pretty (ABT f)
+          , MonadUnify f m, MonadError String m, MonadState s m, Functor j
+          )
+       => Lens' s (Substitution f)
+       -> Lens' s [(a, j (ABT f))]
+       -> ABT f -> ABT f -> m ()
+unifyJ subsl ctxl l r =
+  do newSubs <- solve [Equation l r]
+     updateSubstitutionJ subsl ctxl newSubs

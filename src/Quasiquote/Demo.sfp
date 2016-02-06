@@ -1,0 +1,17 @@
+module Demo where
+  
+  data Bool where
+    | True : Bool
+    | False : Bool
+  end
+  
+  let not : Bool -> Bool where
+    | not True = False
+    | not False = True
+  end
+  
+  let ap : {a b : Type} -> Quoted (a -> b) -> Quoted a -> Quoted b where
+    | ap f x = `(~f ~x)
+  end
+  
+end

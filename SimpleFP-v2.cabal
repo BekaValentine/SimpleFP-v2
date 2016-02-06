@@ -24,7 +24,8 @@ library
                        DependentImplicit.Unification.REPL,
                        Modular.Unification.REPL,
                        Record.Unification.REPL,
-                       OpenDefs.Unification.REPL
+                       OpenDefs.Unification.REPL,
+                       Quasiquote.Unification.REPL
   -- other-modules:       
   -- other-extensions:    
   build-depends:       base,
