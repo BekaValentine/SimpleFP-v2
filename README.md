@@ -36,7 +36,7 @@ The variants should be read in the following order, going from simplest to most 
     
 8.  *Quasiquote*
 
-    This variant extends OpenDefs by adding quasiquoting. The type system for this variant is somewhat different than all of the previous ones because quotation requires a different judgmental framework. Whereas previous variants were built out of the judgment `A true`, the Quasiquote variant uses the judgment `A at l`, where `l` is a quotation level/depth. This is based on the temporal logic type theory of Rowan Davies.
+    This variant extends OpenDefs by adding quasiquoting. The type system for this variant is somewhat different than all of the previous ones because quotation requires a different judgmental framework. Whereas previous variants were built out of the judgment `A true`, the Quasiquote variant uses the judgment `A at l`, where `l` is a quotation level/depth. This is based on the temporal logic type theory of Rowan Davies, which you can read [here](http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.28.4374).
 
 Within each variant, the Core files define the language independent of any type checking and elaboration. The Monadic and Unification files define different kinds of type checkers. Monadic (when it exists) doesn't use any sort of unification for equality. This is only possible in simple situations, and even then it's sometimes unpleasant because you need a lot of type annotation. Unification uses a unifier to enforce equality, which makes it possible to use implicit types/data in all sorts of places, making the  languages much more user friendly. It also permits certain things to be inferable that otherwise wouldn't be.
 
