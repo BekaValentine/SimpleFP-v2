@@ -185,14 +185,14 @@ typeInContext v@(FreeVar n) =
 --    ------------------------------------------------------------ function
 --    Γ ⊢ (x : A) -> B ▹ (x : A') -> B' ⇒ Type true
 --    
---    Γ ⊢ M ▹ M' ⇒ S   Γ ⊢ M' at S applied Plic to N ▹ P ⇒ B
---    ------------------------------------------------------- application
---                  Γ ⊢ app(Plic;M;N) ▹ P ⇒ B
+--    Γ ⊢ M ▹ M' ⇒ S true   Γ ⊢ M' at S applied Plic to N ▹ P ⇒ B true
+--    ---------------------------------------------------------------- app
+--                  Γ ⊢ app(Plic;M;N) ▹ P ⇒ B true
 --    
 --    Σ ∋ c ▹ c' sig(Pl*;(A*)B)
 --    Γ ⊢ zip(Pl*,A*) at B of M* ▹ M*' ⇒ B'
---    ------------------------------------- con data
---      Γ ⊢ con[c](M*) ▹ con[c'](M*') ⇒ B'
+--    ----------------------------------------- con data
+--      Γ ⊢ con[c](M*) ▹ con[c'](M*') ⇒ B' true
 --    
 --    Γ ⊢ mot((x0:A0,...,xm:Am)B) motive
 --    Γ ⊢ M0 ⇐ A0 true
@@ -206,13 +206,13 @@ typeInContext v@(FreeVar n) =
 --    Γ, x0 : A0' true ⊢ A1 ▹ A1' ⇐ Type true
 --    ...
 --    Γ, x0 : A0' true, ..., xn-1 : An-1' true ⊢ An ▹ An' ⇐ Type true
---    ---------------------------------------------------------------
+--    --------------------------------------------------------------- rec
 --    Γ ⊢ rec { x0 : A0, ..., xn : An }
 --          ▹ rec { x0 : A0', ..., xn : An' } ⇒ Type true
 --
---         Γ ⊢ M ▹ M' ⇒ { x0 : A0, ..., xn : An }
---    ------------------------------------------------
---    Γ ⊢ M.xi ▹ M'.xi ⇒ [M'.x0/x0, ...,M'.xi-1/xi-1]Ai
+--         Γ ⊢ M ▹ M' ⇒ { x0 : A0, ..., xn : An } true
+--    ------------------------------------------------------ projection
+--    Γ ⊢ M.xi ▹ M'.xi ⇒ [M'.x0/x0, ...,M'.xi-1/xi-1]Ai true
 -- @
 --
 -- This judgment will also happily infer the type of a constructor, because
@@ -482,7 +482,7 @@ inferifyConArgs ascs0 bsc0 ms0 = go [] ascs0 bsc0 ms0
 --    Γ ⊢ M1 ▹ M1' ⇐ [M0'/x0]A1 true
 --    ...
 --    Γ ⊢ Mn ▹ Mn' ⇐ [M0'/x0,...,Mn-1'/xn-1]An true
---    -----------------------------------------------------------
+--    ----------------------------------------------------------- record
 --    Γ ⊢ { x0 = M0, ..., xn : Mn } ▹ { x0 = M0', ..., xn : Mn' }
 --           ⇐ rec { x0 : A0, ..., xn : An } true
 -- @

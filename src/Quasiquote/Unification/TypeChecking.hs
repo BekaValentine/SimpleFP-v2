@@ -162,7 +162,7 @@ typeInDefinitions n0 =
 
 
 -- | We can get the type of a free variable by looking in the context. This
--- corresponds to the judgment @Γ ∋ x : A true@
+-- corresponds to the judgment @Γ ∋ x : A at l@
 
 typeInContext :: FreeVar -> Elaborator (QLJ Term)
 typeInContext v@(FreeVar n) =
@@ -189,53 +189,65 @@ typeInContext v@(FreeVar n) =
 -- The judgment @Γ ⊢ M ▹ M' ⇒ A true@ is defined inductively as follows:
 --
 -- @
---      Γ ∋ x : A true
+--      Γ ∋ x : A at l
 --    ------------------ variable
---    Γ ⊢ x ▹ x ⇒ A true
+--    Γ ⊢ x ▹ x ⇒ A at l
 --
 --               Δ ∋ n ▹ n' : A
---    ------------------------------------ definition
---    Γ ⊢ defined[n] ▹ defined[n'] ⇒ A true
+--    ------------------------------------- definition
+--    Γ ⊢ defined[n] ▹ defined[n'] ⇒ A at l
 --
---    Γ ⊢ A ▹ A' ⇐ Type true   Γ ⊢ M ▹ M'  ⇐ A' true
+--    Γ ⊢ A ▹ A' ⇐ Type at l   Γ ⊢ M ▹ M'  ⇐ A' at l
 --    ---------------------------------------------- annotation
---            Γ ⊢ M : A ▹ M' : A'  ⇒ A' true
+--            Γ ⊢ M : A ▹ M' : A'  ⇒ A' at l
 --
---    -------------------- type
---    Γ ⊢ Type ▹ Type ⇒ Type true
+--    --------------------------- type
+--    Γ ⊢ Type ▹ Type ⇒ Type at l
 --
---    Γ ⊢ A ▹ A' ⇐ Type true   Γ, x : A' true ⊢ B ▹ B' ⇐ Type true
+--    Γ ⊢ A ▹ A' ⇐ Type at l   Γ, x : A' at l ⊢ B ▹ B' ⇐ Type at l
 --    ------------------------------------------------------------ function
---    Γ ⊢ (x : A) -> B ▹ (x : A') -> B' ⇒ Type true
+--    Γ ⊢ (x : A) -> B ▹ (x : A') -> B' ⇒ Type at l
 --    
---    Γ ⊢ M ▹ M' ⇒ S   Γ ⊢ M' at S applied Plic to N ▹ P ⇒ B
---    ------------------------------------------------------- application
---                  Γ ⊢ app(Plic;M;N) ▹ P ⇒ B
+--    Γ ⊢ M ▹ M' ⇒ S at l   Γ ⊢ M' at S applied Plic to N ▹ P ⇒ B
+--    ----------------------------------------------------------- application
+--                  Γ ⊢ app(Plic;M;N) ▹ P ⇒ B at l
 --    
 --    Σ ∋ c ▹ c' sig(Pl*;(A*)B)
 --    Γ ⊢ zip(Pl*,A*) at B of M* ▹ M*' ⇒ B'
---    ------------------------------------- con data
---      Γ ⊢ con[c](M*) ▹ con[c'](M*') ⇒ B'
+--    --------------------------------------- con data
+--    Γ ⊢ con[c](M*) ▹ con[c'](M*') ⇒ B' at l
 --    
 --    Γ ⊢ mot((x0:A0,...,xm:Am)B) motive
---    Γ ⊢ M0 ⇐ A0 true
+--    Γ ⊢ M0 ⇐ A0 at l
 --    ...
---    Γ ⊢ Mn ⇐ [M0,x0,...]An true
+--    Γ ⊢ Mn ⇐ [M0,x0,...]An at l
 --    Γ ⊢ Cj clause (x0:A0)...(xm:Am)B
 --    ------------------------------------------------------------------- case
---    Γ ⊢ case(M0,...,Mm; mot((x0:A0,...)B); C0,...,Cn) ⇒ [M0/x0,...]B true
+--    Γ ⊢ case(M0,...,Mm; mot((x0:A0,...)B); C0,...,Cn) ⇒ [M0/x0,...]B at l
 --
---    Γ ⊢ A0 ▹ A0' ⇐ Type true
---    Γ, x0 : A0' true ⊢ A1 ▹ A1' ⇐ Type true
+--    Γ ⊢ A0 ▹ A0' ⇐ Type at l
+--    Γ, x0 : A0' at l ⊢ A1 ▹ A1' ⇐ Type at l
 --    ...
---    Γ, x0 : A0' true, ..., xn-1 : An-1' true ⊢ An ▹ An' ⇐ Type true
---    ---------------------------------------------------------------
+--    Γ, x0 : A0' at l, ..., xn-1 : An-1' at l ⊢ An ▹ An' ⇐ Type at l
+--    --------------------------------------------------------------- rec
 --    Γ ⊢ rec { x0 : A0, ..., xn : An }
---          ▹ rec { x0 : A0', ..., xn : An' } ⇒ Type true
+--          ▹ rec { x0 : A0', ..., xn : An' } ⇒ Type at l
 --
---         Γ ⊢ M ▹ M' ⇒ { x0 : A0, ..., xn : An }
---    ------------------------------------------------
---    Γ ⊢ M.xi ▹ M'.xi ⇒ [M'.x0/x0, ...,M'.xi-1/xi-1]Ai
+--         Γ ⊢ M ▹ M' ⇒ { x0 : A0, ..., xn : An } at l
+--    ------------------------------------------------------ projection
+--    Γ ⊢ M.xi ▹ M'.xi ⇒ [M'.x0/x0, ...,M'.xi-1/xi-1]Ai at l
+--
+--           Γ ⊢ A ▹ A' ⇐ Type at l
+--    ------------------------------------ quoted
+--    Γ ⊢ Quoted A ▹ Quoted A' ⇒ Type at l
+--
+--       Γ ⊢ M ▹ M' ⇒ A at l+1
+--    ---------------------------- quote
+--    Γ ⊢ `M ▹ `M' ⇒ Quoted A at l
+--
+--    Γ ⊢ M ▹ M' ⇒ Quoted A at l-1
+--    ---------------------------- unquote
+--       Γ ⊢ ~M ▹ ~M' ⇒ A at l
 -- @
 --
 -- This judgment will also happily infer the type of a constructor, because
@@ -524,9 +536,13 @@ inferifyConArgs ascs0 bsc0 ms0 = go [] ascs0 bsc0 ms0
 --    Γ ⊢ M1 ▹ M1' ⇐ [M0'/x0]A1 true
 --    ...
 --    Γ ⊢ Mn ▹ Mn' ⇐ [M0'/x0,...,Mn-1'/xn-1]An true
---    -----------------------------------------------------------
+--    ----------------------------------------------------------- record
 --    Γ ⊢ { x0 = M0, ..., xn : Mn } ▹ { x0 = M0', ..., xn : Mn' }
 --           ⇐ rec { x0 : A0, ..., xn : An } true
+--
+--       Γ ⊢ M ▹ M' ⇐ A at l+1
+--    ---------------------------- quote
+--    Γ ⊢ `M ▹ `M' ⇐ Quoted A at l
 -- @
 
 checkify :: Term -> NormalTerm -> TypeChecker ElaboratedTerm
