@@ -170,7 +170,10 @@ instance ParamEval Int (Env EnvKey Term) Term where
   paramEval l (In (Case ms mot cs)) =
     do ems <- mapM (paramEval l) (map instantiate0 ms)
        emot <- paramEval l mot
-       return $ caseH ems emot cs
+       ecs <- if l == 0
+                 then return cs
+                 else mapM (paramEval l) cs
+       return $ caseH ems emot ecs
   paramEval l (In (RecordType fields (Telescope ascs))) =
     do eascs <- mapM (underM (paramEval l)) ascs
        return $ In (RecordType fields (Telescope eascs))
