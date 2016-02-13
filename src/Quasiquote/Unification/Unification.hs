@@ -146,6 +146,12 @@ instance MonadUnify TermF Elaborator where
              ++ " and "
              ++ pretty (In (RecordProj r2 x2))
        return [Equation (instantiate0 r1) (instantiate0 r2)]
+  equate (QuotedType a1) (QuotedType a2) =
+    return [Equation (instantiate0 a1) (instantiate0 a2)]
+  equate (Quote m1) (Quote m2) =
+    return [Equation (instantiate0 m1) (instantiate0 m2)]
+  equate (Unquote m1) (Unquote m2) =
+    return [Equation (instantiate0 m1) (instantiate0 m2)]
   equate l r =
     throwError $ "Cannot unify " ++ pretty (In l) ++ " with " ++ pretty (In r)
 
