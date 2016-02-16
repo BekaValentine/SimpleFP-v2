@@ -47,6 +47,25 @@ The variants should be read in the following order, going from simplest to most 
     Additionally, quotes can bind reset points, so that `Quote[k] A` is a quoted `A` that is allowed to use the reset point `k`. So if `k` is a Nat-Nat reset point as in the above examples, the quoted term `` `(shift k. forall x. continue x)`` has the type `Quote[k] Nat`. Unquoting is therefore only possible when the environment of the unquote has appropriate reset points in scope. The term `` `(shift k. forall k. continue k)`` can therefore unquote under at least one reset for `k` but not under 0 unless `k` is again bound by a higher quote.
     
     This variant also comes with a new module `Continuations.Core.Decontinuization` which defines the necessary toolkit to remove continuations from a term that uses continuations. The idea here being, a program of type `Quote A` computes an `A` which might uses continuations. Unwrapping that term removes a quote level, thereby necessitating the removal also of the continuations that it contained. So, given a closed term `M : Quote A at 0`, we know that it must evaluate to `` `N`` for some `N`. But `N` by itself will not be a proof of `A at 0` because it uses continuations. however `decontinuize N` will. Viewed from the perspective of temporal logic, we can take a term at the next moment and step forward in time one moment by unwrapping that term, but in the process we need to decontinuize so that the unwrapped term is still a valid term at the new moment.
+    
+    Before decontinuization, the unwrapped term is merely quoted (at least formerly so), and so it's not guaranteed to be normal. Indeed, if it contains continuations, it's not yet normalizable. Decontinuization therefore converts a just-unquoted term into something which can be normalized. The demo file shows one such term, of type @Quote Nat@ with no captured reset points, namely
+    
+        `(reset natR
+          in Suc (Suc (shift natR
+                       in plus (continue Zero)
+                               (continue (Suc Zero)))))
+    
+    After unwrapping and decontinuizing, this becomes
+    
+        plus (Suc (Suc Zero))
+             (Suc (Suc (Suc Zero)))
+    
+    which will then normalize to `Suc (Suc (Suc (Suc (Suc Zero))))`. In more readable notation:
+    
+        `(reset natR
+          in 2 + (shift natR in continue 0 + continue 1))
+          
+    unwrapping and decontinuizing to `(2 + 0) + (2 + 1)` which evaluates to `5`.
 
 Within each variant, the Core files define the language independent of any type checking and elaboration. The Monadic and Unification files define different kinds of type checkers. Monadic (when it exists) doesn't use any sort of unification for equality. This is only possible in simple situations, and even then it's sometimes unpleasant because you need a lot of type annotation. Unification uses a unifier to enforce equality, which makes it possible to use implicit types/data in all sorts of places, making the  languages much more user friendly. It also permits certain things to be inferable that otherwise wouldn't be.
 
