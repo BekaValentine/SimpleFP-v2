@@ -1,0 +1,56 @@
+module Demo where
+  
+  data Nat where
+    | Zero : Nat
+    | Suc (n : Nat) : Nat
+  end
+  
+  let plus : Nat -> Nat -> Nat where
+    | plus Zero n = n
+    | plus (Suc m) n = Suc (plus m n)
+  end
+  
+  reset natR from Nat to Nat end
+  
+  let ex0 : Quoted Nat
+    = `(reset natR
+        in Suc (Suc (shift natR
+                     in plus (continue Zero)
+                             (continue (Suc Zero)))))
+  end
+  
+  let ex1 : Quoted[natR] Nat
+    = `(Suc (Suc (shift natR
+                  in plus (continue Zero)
+                          (continue (Suc Zero)))))
+  end
+  
+  -- this will fail because it uses continuations outside of quotes
+  {-
+  let ex2 : Nat
+    = reset natR
+      in Suc (Suc (shift natR
+                   in plus (continue Zero)
+                           (continue (Suc Zero))))
+  end
+  --}
+  
+  -- this will fail because it uses a reset point that's not in scope
+  {-
+  let ex3 : Quoted Nat
+    = `(Suc (Suc (shift natR
+                  in plus (continue Zero)
+                          (continue (Suc Zero)))))
+  end
+  --}
+  
+  -- this will fail because it continues without having a shifted reset point
+  {-
+  let ex5 : Quoted Nat
+    = `(reset natR
+        in Suc (Suc (plus (continue Zero)
+                          (continue (Suc Zero)))))
+  end
+  --}
+  
+end

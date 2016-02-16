@@ -1,6 +1,7 @@
 {-# OPTIONS -Wall #-}
 {-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE FlexibleContexts #-}
 
 
@@ -30,7 +31,7 @@ import Data.List (inits)
 
 data Telescope a
   = Telescope [a]
-  deriving (Functor,Foldable)
+  deriving (Functor,Foldable,Traversable)
 
 
 instance Eq1 Telescope where
@@ -148,7 +149,7 @@ instantiateTelescopeNames (Telescope ascs) ns = cs
 
 data BindingTelescope a
   = BindingTelescope [a] a
-  deriving (Functor,Foldable)
+  deriving (Functor,Foldable,Traversable)
 
 
 instance Eq1 BindingTelescope where

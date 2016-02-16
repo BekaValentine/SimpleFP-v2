@@ -24,6 +24,7 @@ module Utils.ABT where
 import Utils.Vars
 
 import Data.Bifunctor
+import Data.Bitraversable
 import qualified Data.Foldable as F (foldl')
 import Data.Functor.Classes
 import Data.List (elemIndex)
@@ -638,3 +639,23 @@ zipScopeF :: Bizippable f => Scope (f a) -> Scope (f b) -> Maybe [(a,b)]
 zipScopeF (Scope ns _ x) (Scope ns' _ y)
   | length ns == length ns' = zipABTF x y
   | otherwise = Nothing
+
+
+
+
+
+
+
+-- * Traversing
+
+
+
+bisequenceABTF :: (Applicative f, Bitraversable g)
+               => ABT (g (f a)) -> f (ABT (g a))
+bisequenceABTF (Var v) = pure (Var v)
+bisequenceABTF (In x) = In <$> bitraverse id bisequenceScopeF x
+
+
+bisequenceScopeF :: (Applicative f, Bitraversable g)
+                 => Scope (g (f a)) -> f (Scope (g a))
+bisequenceScopeF (Scope ns fns x) = Scope ns fns <$> bisequenceABTF x
