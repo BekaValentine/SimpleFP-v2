@@ -505,12 +505,10 @@ under :: (ABT f -> ABT f) -> Scope f -> Scope f
 under f (Scope ns fns b) = Scope ns fns (f b)
 
 
--- | A monadic variant of 'under'
+-- | A functor-lifted version of 'under'
 
-underM :: Monad m => (ABT f -> m (ABT f)) -> Scope f -> m (Scope f)
-underM f (Scope ns fns b) =
-  do b' <- f b
-     return $ Scope ns fns b'
+underF :: Functor m => (ABT f -> m (ABT f)) -> Scope f -> m (Scope f)
+underF f (Scope ns fns b) = Scope ns fns <$> f b
 
 
 -- | A convenience function that makes it easier to do iterated binding.

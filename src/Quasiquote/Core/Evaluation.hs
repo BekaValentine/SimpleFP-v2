@@ -133,11 +133,11 @@ instance ParamEval Int (Env EnvKey Term) Term where
   paramEval _ (In Type) =
     return $ In Type
   paramEval l (In (Fun plic a sc)) =
-    do ea <- underM (paramEval l) a
-       esc <- underM (paramEval l) sc
+    do ea <- underF (paramEval l) a
+       esc <- underF (paramEval l) sc
        return $ In (Fun plic ea esc)
   paramEval l (In (Lam plic sc)) =
-    do esc <- underM (paramEval l) sc
+    do esc <- underF (paramEval l) sc
        return $ In (Lam plic esc)
   paramEval 0 (In (App plic f a)) =
     do ef <- paramEval 0 (instantiate0 f)
@@ -175,7 +175,7 @@ instance ParamEval Int (Env EnvKey Term) Term where
                  else mapM (paramEval l) cs
        return $ caseH ems emot ecs
   paramEval l (In (RecordType fields (Telescope ascs))) =
-    do eascs <- mapM (underM (paramEval l)) ascs
+    do eascs <- mapM (underF (paramEval l)) ascs
        return $ In (RecordType fields (Telescope eascs))
   paramEval l (In (RecordCon fields)) =
     do fields' <- forM fields $ \(f,m) -> do
@@ -220,21 +220,21 @@ instance ParamEval Int (Env EnvKey Term) Term where
 
 instance ParamEval Int (Env EnvKey Term) CaseMotive where
   paramEval l (CaseMotive (BindingTelescope ascs bsc)) =
-    do eascs <- mapM (underM (paramEval l)) ascs
-       ebsc <- underM (paramEval l) bsc
+    do eascs <- mapM (underF (paramEval l)) ascs
+       ebsc <- underF (paramEval l) bsc
        return $ CaseMotive (BindingTelescope eascs ebsc)
 
 
 instance ParamEval Int (Env EnvKey Term) Clause where
   paramEval l (Clause pscs bsc) =
     do epscs <- mapM (paramEval l) pscs
-       ebsc <- underM (paramEval l) bsc
+       ebsc <- underF (paramEval l) bsc
        return $ Clause epscs ebsc
 
 
 instance ParamEval Int (Env EnvKey Term) (PatternF (Scope TermF)) where
   paramEval l (PatternF x) =
-    do ex <- underM (paramEval l) x
+    do ex <- underF (paramEval l) x
        return $ PatternF ex
 
 
@@ -243,11 +243,11 @@ instance ParamEval Int (Env EnvKey Term) (ABT (PatternFF (Scope TermF))) where
     return $ Var v
   paramEval l (In (ConPat c ps)) =
     do eps <- forM ps $ \(plic,p) ->
-                do ep <- underM (paramEval l) p
+                do ep <- underF (paramEval l) p
                    return (plic,ep)
        return $ In (ConPat c eps)
   paramEval l (In (AssertionPat m)) =
-    do em <- underM (paramEval l) m
+    do em <- underF (paramEval l) m
        return $ In (AssertionPat em)
   paramEval _ (In MakeMeta) =
     return $ In MakeMeta

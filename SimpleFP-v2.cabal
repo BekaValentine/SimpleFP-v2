@@ -16,16 +16,17 @@ extra-source-files:  README.md
 cabal-version:       >=1.10
 
 library
-  exposed-modules:     Simple.Monadic.REPL,
-                       Simple.Unification.REPL,
-                       Poly.Unification.REPL,
-                       Dependent.Monadic.REPL,
-                       Dependent.Unification.REPL,
-                       DependentImplicit.Unification.REPL,
-                       Modular.Unification.REPL,
-                       Record.Unification.REPL,
-                       OpenDefs.Unification.REPL,
-                       Quasiquote.Unification.REPL
+  exposed-modules:     Continuations.Core.Decontinuization
+                       -- Simple.Monadic.REPL,
+                       -- Simple.Unification.REPL,
+                       -- Poly.Unification.REPL,
+                       -- Dependent.Monadic.REPL,
+                       -- Dependent.Unification.REPL,
+                       -- DependentImplicit.Unification.REPL,
+                       -- Modular.Unification.REPL,
+                       -- Record.Unification.REPL,
+                       -- OpenDefs.Unification.REPL,
+                       -- Quasiquote.Unification.REPL
   -- other-modules:       
   -- other-extensions:    
   build-depends:       base,

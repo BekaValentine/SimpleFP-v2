@@ -116,11 +116,11 @@ instance Eval (Env String Term) Term where
   eval (In Type) =
     return $ In Type
   eval (In (Fun a sc)) =
-    do ea <- underM eval a
-       esc <- underM eval sc
+    do ea <- underF eval a
+       esc <- underF eval sc
        return $ In (Fun ea esc)
   eval (In (Lam sc)) =
-    do esc <- underM eval sc
+    do esc <- underF eval sc
        return $ In (Lam esc)
   eval (In (App f a)) =
     do ef <- eval (instantiate0 f)
@@ -145,21 +145,21 @@ instance Eval (Env String Term) Term where
 
 instance Eval (Env String Term) CaseMotive where
   eval (CaseMotive (BindingTelescope ascs bsc)) =
-    do eascs <- mapM (underM eval) ascs
-       ebsc <- underM eval bsc
+    do eascs <- mapM (underF eval) ascs
+       ebsc <- underF eval bsc
        return $ CaseMotive (BindingTelescope eascs ebsc)
 
 
 instance Eval (Env String Term) Clause where
   eval (Clause pscs bsc) =
     do epscs <- mapM eval pscs
-       ebsc <- underM eval bsc
+       ebsc <- underF eval bsc
        return $ Clause epscs ebsc
 
 
 instance Eval (Env String Term) (PatternF (Scope TermF)) where
   eval (PatternF x) =
-    do ex <- underM eval x
+    do ex <- underF eval x
        return $ PatternF ex
 
 
@@ -167,8 +167,8 @@ instance Eval (Env String Term) (ABT (PatternFF (Scope TermF))) where
   eval (Var v) =
     return $ Var v
   eval (In (ConPat c ps)) =
-    do eps <- mapM (underM eval) ps
+    do eps <- mapM (underF eval) ps
        return $ In (ConPat c eps)
   eval (In (AssertionPat m)) =
-    do em <- underM eval m
+    do em <- underF eval m
        return $ In (AssertionPat em)
