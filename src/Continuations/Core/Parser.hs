@@ -38,7 +38,7 @@ languageDef = Token.LanguageDef
                                       ,"where","let","Type","module","open"
                                       ,"opening","as","using","hiding"
                                       ,"renaming","to","Rec","Quoted"
-                                      ,"continue","shift","reset","from"
+                                      ,"continue","shift","reset","from","in"
                                       ]
               , Token.reservedOpNames = ["|","||","->","\\",":","::","=",".","`","~"]
               , Token.caseSensitive = True
