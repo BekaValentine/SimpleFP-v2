@@ -602,7 +602,8 @@ instance Eq1 f => Eq (ABT f) where
 
 
 instance Eq1 f => Eq (Scope f) where
-  Scope _ _ x == Scope _ _ y = x == y
+  Scope ns _ x == Scope ns' _ y =
+    length ns == length ns' && x == y
 
 
 
