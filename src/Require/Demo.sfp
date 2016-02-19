@@ -2,10 +2,14 @@ module Demo where
   
   data Foo end
   
-  -- both of these examples will type check, but only ex0 will be solvable  
+  data Bar (f : Foo) end
   
-  let ex0 : Quoted (Foo -> Foo)
-    = `(\y -> require x : Foo in x)
+  -- both of these examples will type check, but only @ex0@ will be solvable.
+  -- it will solve @x@ to be @y@, so the entire thing solves to
+  -- @(y : Foo) -> Bar y@
+  
+  let ex0 : Quoted Type
+    = `((y : Foo) -> require x : Foo in Bar x)
   end
   
   let ex1 : Quoted Foo
