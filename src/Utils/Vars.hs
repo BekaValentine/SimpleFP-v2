@@ -39,7 +39,7 @@ newtype BoundVar = BoundVar Int
 -- accidentally using it for the wrong things.
 
 newtype MetaVar = MetaVar Int
-  deriving (Eq,Show,Num)
+  deriving (Eq,Show,Num,Ord)
 
 
 

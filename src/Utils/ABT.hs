@@ -588,6 +588,21 @@ occurs m x = fold ocAlgV ocAlgRec ocAlgSc x
     ocAlgSc _ b = b
 
 
+-- | We can get a list of the metavars in an ABT.
+
+metaVars :: (Functor f, Foldable f) => ABT f -> [MetaVar]
+metaVars = fold mvAlgV mvAlgRec mvAlgSc
+  where
+    mvAlgV (Meta n) = [n]
+    mvAlgV _        = []
+    
+    mvAlgRec :: Foldable f => f [MetaVar] -> [MetaVar]
+    mvAlgRec = foldMap id
+    
+    mvAlgSc :: Int -> [MetaVar] -> [MetaVar]
+    mvAlgSc _ ns = ns
+
+
 
 
 

@@ -1,0 +1,15 @@
+module Demo where
+  
+  data Foo end
+  
+  -- both of these examples will type check, but only ex0 will be solvable  
+  
+  let ex0 : Quoted (Foo -> Foo)
+    = `(\y -> require x : Foo in x)
+  end
+  
+  let ex1 : Quoted Foo
+    = `(require x : Foo in x)
+  end
+  
+end

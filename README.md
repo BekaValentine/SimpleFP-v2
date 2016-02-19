@@ -67,6 +67,10 @@ The variants should be read in the following order, going from simplest to most 
           
     unwrapping and decontinuizing to `(2 + 0) + (2 + 1)` which evaluates to `5`.
 
+10. *Require*
+    
+    This variant extends the continuation variant with `require` expressions that can be solved after decontinuization. A require is like a let expression, only instead of the programmer supplying the value of a variable, the solver will provide one. So for example, the term `require x : Nat in x` is a `Nat`, provided that the solver can find one in scope to provide. The solver provided in `RequireSolving` will only find solutions in the terms provided upfront as resources, plus whatever is brought into scope by function types, however. It solves by decomposing what's in scope projectors (if the item has a record time), or else leaving it alone, and then by picking an appropriate value, or constructing a record of the right sort, as solutions. It won't use any other elims or intros to solve a require.
+
 Within each variant, the Core files define the language independent of any type checking and elaboration. The Monadic and Unification files define different kinds of type checkers. Monadic (when it exists) doesn't use any sort of unification for equality. This is only possible in simple situations, and even then it's sometimes unpleasant because you need a lot of type annotation. Unification uses a unifier to enforce equality, which makes it possible to use implicit types/data in all sorts of places, making the  languages much more user friendly. It also permits certain things to be inferable that otherwise wouldn't be.
 
 To use any given variant, load its REPL module and run it. For instance:
