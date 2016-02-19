@@ -26,7 +26,7 @@ library
                        Record.Unification.REPL,
                        OpenDefs.Unification.REPL,
                        Quasiquote.Unification.REPL,
-                       Continuations.Core.REPL
+                       Continuations.Unification.REPL
   -- other-modules:       
   -- other-extensions:    
   build-depends:       base,
