@@ -229,9 +229,11 @@ elabTermDecl (LetFamilyDeclaration n args ty0) =
      when' (typeInDefinitions (Absolute m n))
        $ throwError ("Term already defined: " ++ n)
      let plics = [ plic | DeclArg plic _ _ <- args ]
-         ty = helperFold (\(DeclArg plic x t) -> funH plic x t) args ty0
+         ty = freeToDefined (In . Defined . BareLocal)
+                $ helperFold (\(DeclArg plic x t) -> funH plic x t) args ty0
          (xs,ts) = unzip [ (x,t) | DeclArg _ x t <- args ]
-         mot = caseMotiveH xs ts ty0
+         mot = fmap (freeToDefinedScope (In . Defined . BareLocal))
+                    (caseMotiveH xs ts ty0)
      elty <- check ty (NormalTerm (In Type))
      mot' <- checkifyCaseMotive mot
      fs <- getElab openFunctions
@@ -257,36 +259,39 @@ elabTermDecl (LetInstanceDeclaration n preclauses) =
   do (m',n') <- unalias n
      fs <- getElab openFunctions
      case lookup (m',n') fs of
-       Nothing
-         -> throwError $ "No open function named " ++ show n
-                           ++ " has been declared."
-       Just (ty,plics,mot,clauses)
-         -> do clauses'
-                 <- forM preclauses $ \(plics',(xs,ps,b)) -> do
-                      case insertMetas plics plics' of
-                        Nothing
-                          -> throwError $ "Instance for open function "
-                               ++ show n ++ " has invalid argument plicities."
-                        Just bs
-                          -> return $ clauseH xs (truePatterns bs ps) b
-               let newClauses = clauses ++ clauses'
-                   xs0 = [ "x" ++ show i | i <- [0..length plics-1] ]
-                   newDef =
-                     helperFold
-                       (uncurry lamH)
-                       (zip plics xs0)
-                       (caseH (map (Var . Free . FreeVar) xs0) mot newClauses)
-                   newOpenFunctions =
-                     ((m',n'),(ty,plics,mot,newClauses))
-                       : filter (\(p,_) -> p /= (m',n')) fs
-               ety <- evaluate (SubstitutedTerm ty)
-               newDef' <- extendElab definitions [((m',n'), (newDef, ty))]
-                            $ check newDef ety
-               putElab openFunctions newOpenFunctions
-               defs <- getElab definitions
-               putElab definitions
-                 $ ((m',n'),(newDef',ty))
-                     : filter (\(p,_) -> p /= (m',n')) defs
+       Nothing ->
+         throwError $ "No open function named " ++ show n
+                   ++ " has been declared."
+       Just (ty,plics,mot,clauses) ->
+         do clauses'
+              <- forM preclauses $ \(plics',(xs,ps,b)) -> do
+                   case insertMetas plics plics' of
+                     Nothing ->
+                       throwError $ "Instance for open function "
+                         ++ show n ++ " has invalid argument plicities."
+                     Just bs ->
+                       return $
+                         fmap (freeToDefinedScope
+                                (In . Defined . BareLocal))
+                                (clauseH xs (truePatterns bs ps) b)
+            let newClauses = clauses ++ clauses'
+                xs0 = [ "x" ++ show i | i <- [0..length plics-1] ]
+                newDef =
+                  helperFold
+                    (uncurry lamH)
+                    (zip plics xs0)
+                    (caseH (map (Var . Free . FreeVar) xs0) mot newClauses)
+                newOpenFunctions =
+                  ((m',n'),(ty,plics,mot,newClauses))
+                    : filter (\(p,_) -> p /= (m',n')) fs
+            ety <- evaluate (SubstitutedTerm ty)
+            newDef' <- extendElab definitions [((m',n'), (newDef, ty))]
+                         $ check newDef ety
+            putElab openFunctions newOpenFunctions
+            defs <- getElab definitions
+            putElab definitions
+              $ ((m',n'),(newDef',ty))
+                  : filter (\(p,_) -> p /= (m',n')) defs
   where
     insertMetas :: [Plicity] -> [Plicity] -> Maybe [Bool]
     insertMetas [] [] = Just []
@@ -349,8 +354,9 @@ elabInstanceAlt :: String
                 -> String
                 -> ConSig
                 -> Elaborator ()
-elabInstanceAlt m localTycon c consig
-  = do validConSig localTycon (BareLocal c) consig
+elabInstanceAlt m localTycon c consig0
+  = do let consig = freeToDefinedConSig consig0
+       validConSig localTycon (BareLocal c) consig
        sig <- getElab signature
        case lookup (m,c) sig of
          Just _
@@ -408,7 +414,7 @@ elabTypeDecl (TypeDeclaration tycon tyconargs alts)
        addConstructor (m,tycon) tyconSig'
        mapM_ (uncurry (elabAlt tycon)) alts
 elabTypeDecl (DataFamilyDeclaration tycon tyconargs) =
-  do let tyconSig = conSigH tyconargs (In Type)
+  do let tyconSig = freeToDefinedConSig (conSigH tyconargs (In Type))
      when' (typeInSignature (BareLocal tycon))
          $ throwError ("Type constructor already declared: " ++ tycon)
      addAlias tycon
