@@ -296,7 +296,9 @@ solve resources0 m =
                           ]
                     return (meta, resources0 ++ newResources)
            in do subs <- goSubstitutions resourcesByMeta sortedProblems
-                 return $ substMetas subs em
+                 case evalTerm (substMetas subs em) of
+                   Nothing -> []
+                   Just em' -> [em']
   where
     goSubstitutions :: [(MetaVar,[(Term,Term)])]
                     -> [(MetaVar,Term)]
