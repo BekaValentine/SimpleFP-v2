@@ -2,7 +2,6 @@ module Require.Unification.REPL where
 
 import Control.Monad.Reader (runReaderT)
 import System.IO
-import Debug
 import Utils.ABT
 import Utils.Env
 import Utils.Eval
