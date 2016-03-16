@@ -202,7 +202,8 @@ addShift res tc =
   do shifts <- getElab shiftsInScope
      putElab shiftsInScope (res:shifts)
      ctx <- getElab context
-     putElab context []
+     l <- getElab quoteLevel
+     putElab context (filter (\(_, QLJ _ l') -> l' < l) ctx)
      x <- tc
      putElab context ctx
      putElab shiftsInScope shifts
@@ -300,7 +301,7 @@ removeShift tc =
 --    ---------------------------------------------------- continue
 --       Γ ; S, s ⊢ continue M ▹ continue M' ⇒ B at l+1
 --
---    Resets ∋ k : A resets B    e ; K, k ; S, k ⊢ M ▹ M' ⇐ B at l+1
+--    Resets ∋ k : A resets B    Γ @ l'<l+1 ; K, k ; S, k ⊢ M ▹ M' ⇐ B at l+1
 --    -------------------------------------------------------------- shift
 --        Γ ; K, k ; S ⊢ shift k in M ▹ shift k in M' ⇒ A at l+1
 --
@@ -472,7 +473,7 @@ inferify (In (Continue m)) =
        res:_ ->
          do (lower,upper) <- getResetPoint res
             ElaboratedTerm elm <-
-              id --removeShift
+              removeShift
                 $ checkify (instantiate0 m)
                            (NormalTerm lower)
             return (ElaboratedTerm (continueH elm), upper)
