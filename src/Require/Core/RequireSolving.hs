@@ -280,10 +280,10 @@ compose resources t =
 -- 4. Sort the metavariables by dependency
 -- 5. Compose solutions in that order
 
-solve :: [(Term,Term)] -> Term -> [Term]
-solve resources0 m =
+solve :: [((String,String),Term)] -> [(Term,Term)] -> Term -> [Term]
+solve defs resources0 m =
   let (m', problems) = removeRequires m
-  in case evalTerm m' of
+  in case evalTerm defs m' of
        Nothing -> []
        Just em -> case sortProblems problems of
          Nothing -> []
@@ -296,7 +296,7 @@ solve resources0 m =
                           ]
                     return (meta, resources0 ++ newResources)
            in do subs <- goSubstitutions resourcesByMeta sortedProblems
-                 case evalTerm (substMetas subs em) of
+                 case evalTerm defs (substMetas subs em) of
                    Nothing -> []
                    Just em' -> [em']
   where

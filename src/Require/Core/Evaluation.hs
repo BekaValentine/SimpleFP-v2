@@ -274,8 +274,8 @@ instance ParamEval Int (Env EnvKey Term) (ABT (PatternFF (Scope TermF))) where
 
 
 
-evalTerm :: Term -> Maybe Term
-evalTerm m =
-  case runReaderT (paramEval (0 :: Int) m) ([] :: Env EnvKey Term) of
+evalTerm :: [((String,String),Term)] -> Term -> Maybe Term
+evalTerm defs m =
+  case runReaderT (paramEval (0 :: Int) m) defs of
     Left _ -> Nothing
-    Right m -> Just m
+    Right em -> Just em
