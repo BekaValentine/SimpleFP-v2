@@ -37,7 +37,7 @@ languageDef = Token.LanguageDef
               , Token.reservedNames = ["data","case","motive","of","end"
                                       ,"where","let","Type","module","open"
                                       ,"opening","as","using","hiding"
-                                      ,"renaming","to","Rec","Quoted"
+                                      ,"renaming","to","Rec","family","instance","Quoted"
                                       ,"continue","shift","reset","from","in"
                                       ,"require"
                                       ]
