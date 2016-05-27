@@ -707,12 +707,32 @@ checkify (In (Con c ms)) (NormalTerm t) =
      return $ ElaboratedTerm subelm
 checkify (In (RecordCon fields)) (NormalTerm t) =
   case t of
-    In (RecordType _ (Telescope ascs)) | length fields == length ascs ->
-      do let (fs,ms) = unzip fields
-         ms' <- go [] (map instantiate0 ms) ascs
-         return $ ElaboratedTerm (recordConH (zip fs ms'))
-    _ -> throwError $ "Cannot check a record against type " ++ pretty t
+    In (RecordType typeFields (Telescope ascs)) ->
+      if length typeFields >= length fields
+      then case lookupMany typeFields fields of
+        Left missingField ->
+          throwError $ "Cannot check the record "
+          ++ pretty (In (RecordCon fields)) ++ " against type " ++ pretty t
+          ++ " because the record is missing the field " ++ missingField
+        Right ms ->
+          do ms' <- go [] (map instantiate0 ms) ascs
+             return $ ElaboratedTerm (recordConH (zip typeFields ms'))
+      else
+        throwError $ "Cannot check the record "
+          ++ pretty (In (RecordCon fields)) ++ " against type " ++ pretty t
+          ++ " because the record has too many fields"
+    _ -> throwError $ "Cannot check the record "
+           ++ pretty (In (RecordCon fields)) ++ " against type " ++ pretty t
   where
+    lookupMany :: Eq k => [k] -> [(k,v)] -> Either k [v]
+    lookupMany [] _ = Right []
+    lookupMany (k:ks) kvs =
+      case lookup k kvs of
+        Nothing -> Left k
+        Just v ->
+          do vs <- lookupMany ks kvs
+             return (v:vs)
+    
     go :: [Term] -> [Term] -> [Scope TermF] -> TypeChecker [Term]
     go acc [] [] =
       return acc
