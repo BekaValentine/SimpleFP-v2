@@ -50,6 +50,7 @@ reserved = Token.reserved tokenParser
 reservedOp = Token.reservedOp tokenParser
 parens = Token.parens tokenParser
 symbol = Token.symbol tokenParser
+whiteSpace = Token.whiteSpace tokenParser
 
 
 
@@ -173,7 +174,7 @@ caseArg = annotation <|> application <|> parenTerm <|> lambda <|> conData <|> va
 
 term = annotation <|> application <|> parenTerm <|> lambda <|> conData <|> caseExp <|> variable
 
-parseTerm str = case parse (spaces *> term <* eof) "(unknown)" str of
+parseTerm str = case parse (whiteSpace *> term <* eof) "(unknown)" str of
                   Left e -> Left (show e)
                   Right p -> Right p
 
@@ -247,6 +248,6 @@ program = Program <$> many statement
 
 parseProgram :: String -> Either String Program
 parseProgram str =
-  case parse (spaces *> program <* eof) "(unknown)" str of
+  case parse (whiteSpace *> program <* eof) "(unknown)" str of
     Left e -> Left (show e)
     Right p -> Right p

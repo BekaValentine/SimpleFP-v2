@@ -53,6 +53,7 @@ reservedOp = Token.reservedOp tokenParser
 parens = Token.parens tokenParser
 braces = Token.braces tokenParser
 symbol = Token.symbol tokenParser
+whiteSpace = Token.whiteSpace tokenParser
 
 
 
@@ -381,7 +382,7 @@ requireBody = annotation <|> funType <|> application <|> continue <|> dottedThin
 
 term = annotation <|> funType <|> application <|> continue <|> dottedThings <|> parenTerm <|> lambda <|> shift <|> reset <|> require <|> conData <|> quotedType <|> quote <|> unquote <|> caseExp <|> variable <|> typeType <|> recordType <|> recordCon
 
-parseTerm str = case parse (spaces *> term <* eof) "(unknown)" str of
+parseTerm str = case parse (whiteSpace *> term <* eof) "(unknown)" str of
                   Left e -> Left (show e)
                   Right p -> Right p
 
@@ -658,6 +659,6 @@ program = Program <$> many modul
 
 parseProgram :: String -> Either String Program
 parseProgram str
-  = case parse (spaces *> program <* eof) "(unknown)" str of
+  = case parse (whiteSpace *> program <* eof) "(unknown)" str of
       Left e -> Left (show e)
       Right p -> Right p
