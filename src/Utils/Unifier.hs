@@ -241,7 +241,12 @@ unify :: ( Eq a, Functor f, Foldable f, Pretty (ABT f)
       -> Lens' s [(a, ABT f)]
       -> ABT f -> ABT f -> m ()
 unify subsl ctxl l r =
-  do newSubs <- solve [Equation l r]
+  do newSubs <-
+       catchError
+         (solve [Equation l r])
+         (\e -> throwError $
+                  "Could not unify "++ pretty l ++ " with " ++ pretty r
+                    ++ ". " ++ e)
      updateSubstitution subsl ctxl newSubs
 
 
@@ -260,5 +265,10 @@ unifyJ :: ( Eq a, Functor f, Foldable f, Pretty (ABT f)
        -> Lens' s [(a, j (ABT f))]
        -> ABT f -> ABT f -> m ()
 unifyJ subsl ctxl l r =
-  do newSubs <- solve [Equation l r]
+  do newSubs <-
+       catchError
+         (solve [Equation l r])
+         (\e -> throwError $
+                  "Could not unify "++ pretty l ++ " with " ++ pretty r
+                    ++ ". " ++ e)
      updateSubstitutionJ subsl ctxl newSubs
