@@ -18,7 +18,6 @@ module Poly.Core.Type where
 
 import Utils.ABT
 import Utils.Pretty
-import Utils.Vars
 
 
 

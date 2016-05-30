@@ -125,7 +125,12 @@ lambda = do _ <- reservedOp "\\"
             xs <- many1 varName
             _ <- reservedOp "->"
             b <- lamBody
-            return $ helperFold lamH xs b
+            let xsFreshDummies =
+                  map unBNSString
+                      (dummiesToFreshNames
+                        (freeVarNames b)
+                        (map BNSString xs))
+            return $ helperFold lamH xsFreshDummies b
 
 application = do (f,a) <- try $ do
                    f <- appFun
@@ -142,15 +147,14 @@ conData = do c <- decName
              return $ conH c as
 
 varPattern = do x <- varName
-                return (Var (Free (FreeVar x)),[x])
+                return $ Var (Free (FreeVar x))
 
 noArgConPattern = do c <- decName
-                     return $ (conPatH c [], [])
+                     return $ conPatH c []
 
 conPattern = do c <- decName
-                psxs <- many conPatternArg
-                let (ps,xs) = unzip psxs
-                return $ (conPatH c ps, concat xs)
+                ps <- many conPatternArg
+                return $ conPatH c ps
 
 parenPattern = parens pattern
 
@@ -158,14 +162,14 @@ conPatternArg = parenPattern <|> noArgConPattern <|> varPattern
 
 pattern = parenPattern <|> conPattern <|> varPattern
 
-clause = do psxs <- try $ do
-              psxs <- pattern `sepBy` reservedOp "||"
+clause = do ps <- try $ do
+              ps <- pattern `sepBy` reservedOp "||"
               _ <- reservedOp "->"
-              return psxs
+              return ps
             b <- term
-            let ps = map fst psxs
-                xs = concat (map snd psxs)
-            return $ clauseH xs ps b
+            let freshenedPs = dummiesToFreshNames (freeVarNames b) ps
+                xs = freeVarNames =<< freshenedPs
+            return $ clauseH xs freshenedPs b
 
 caseExp = do _ <- reserved "case"
              m <- caseArg `sepBy` reservedOp "||"
@@ -225,12 +229,13 @@ whereTermDecl = do (x,t) <- try $ do
                    return $ WhereDeclaration x t preclauses
 
 patternMatchClause x = do _ <- symbol x
-                          psxs <- many patternMatchPattern
+                          ps <- many patternMatchPattern
                           _ <- reservedOp "="
                           b <- term
-                          let ps = map fst psxs
-                              xs = concat (map snd psxs)
-                          return (ps,xs,b)
+                          let freshenedPs =
+                                dummiesToFreshNames (freeVarNames b) ps
+                              xs = freeVarNames =<< freshenedPs
+                          return (freshenedPs,xs,b)
 
 patternMatchPattern = parenPattern <|> noArgConPattern <|> varPattern
 

@@ -2,6 +2,7 @@
 
 {-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -103,7 +104,7 @@ data PatternFF a r
   = ConPat Name [(Plicity,r)]
   | AssertionPat a
   | MakeMeta
-  deriving (Functor,Foldable)
+  deriving (Functor,Foldable,Traversable)
 
 
 instance Bifunctor PatternFF where

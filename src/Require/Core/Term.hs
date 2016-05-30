@@ -168,7 +168,7 @@ data PatternFF a r
   = ConPat Name [(Plicity,r)]
   | AssertionPat a
   | MakeMeta
-  deriving (Functor,Foldable)
+  deriving (Functor,Foldable,Traversable)
 
 
 instance Eq a => Eq1 (PatternFF a) where

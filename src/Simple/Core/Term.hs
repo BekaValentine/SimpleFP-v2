@@ -1,6 +1,7 @@
 {-# OPTIONS -Wall #-}
 {-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -56,7 +57,7 @@ type Clause = ClauseF (Scope TermF)
 -- | Patterns are only constructor patterns, with some number of pattern args.
 
 data PatternF r = ConPat String [r]
-  deriving (Functor,Foldable)
+  deriving (Functor,Foldable,Traversable)
 
   
 type Pattern = ABT PatternF

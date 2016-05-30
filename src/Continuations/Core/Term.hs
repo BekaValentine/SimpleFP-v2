@@ -111,7 +111,7 @@ data PatternFF a r
   = ConPat Name [(Plicity,r)]
   | AssertionPat a
   | MakeMeta
-  deriving (Functor,Foldable)
+  deriving (Functor,Foldable,Traversable)
 
 
 instance Bifunctor PatternFF where

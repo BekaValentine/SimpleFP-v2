@@ -84,14 +84,24 @@ binderFunType = do (xs,arg) <- try $ do
                      _ <- reservedOp "->"
                      return (xs,arg)
                    ret <- funRet
-                   return $ helperFold (\x -> funH x arg) xs ret
+                   let xsFreshDummies =
+                         map unBNSString
+                             (dummiesToFreshNames
+                                (freeVarNames ret)
+                                (map BNSString xs))
+                   return $ helperFold (\x -> funH x arg) xsFreshDummies ret
 
 noBinderFunType = do arg <- try $ do
                        arg <- funArg
                        _ <- reservedOp "->"
                        return arg
                      ret <- funRet
-                     return $ funH "_" arg ret
+                     let xsFreshDummies =
+                           unBNSString
+                             (dummiesToFreshNames
+                                (freeVarNames ret)
+                                (BNSString "_"))
+                     return $ funH xsFreshDummies arg ret
 
 funType = binderFunType <|> noBinderFunType
 
@@ -99,7 +109,12 @@ lambda = do _ <- reservedOp "\\"
             xs <- many1 varName
             _ <- reservedOp "->"
             b <- lamBody
-            return $ helperFold lamH xs b
+            let xsFreshDummies =
+                  map unBNSString
+                      (dummiesToFreshNames
+                        (freeVarNames b)
+                        (map BNSString xs))
+            return $ helperFold lamH xsFreshDummies b
 
 application = do (f,a) <- try $ do
                    f <- appFun
@@ -117,18 +132,17 @@ conData = do c <- decName
 
 assertionPattern = do _ <- reservedOp "."
                       m <- assertionPatternArg
-                      return $ ([], assertionPatH m)
+                      return $ assertionPatH m
 
 varPattern = do x <- varName
-                return ([x], Var (Free (FreeVar x)))
+                return $ Var (Free (FreeVar x))
 
 noArgConPattern = do c <- decName
-                     return $ ([], conPatH c [])
+                     return $ conPatH c []
 
 conPattern = do c <- decName
-                xsps <- many conPatternArg
-                let (xss,ps) = unzip xsps
-                return $ (concat xss, conPatH c ps)
+                ps <- many conPatternArg
+                return $ conPatH c ps
 
 parenPattern = parens pattern
 
@@ -137,10 +151,6 @@ conPatternArg = assertionPattern <|> parenPattern <|> noArgConPattern <|> varPat
 assertionPatternArg = parenTerm <|> noArgConData <|> variable <|> typeType
 
 pattern = assertionPattern <|> parenPattern <|> conPattern <|> varPattern
-
-patternSeq = do xsps <- pattern `sepBy` reservedOp "||"
-                let (xss,ps) = unzip xsps
-                return (concat xss,ps)
 
 consMotivePart = do (xs,a) <- try $ parens $ do
                       xs <- many1 varName
@@ -157,14 +167,21 @@ nilMotivePart = do b <- term
 caseMotiveParts = consMotivePart <|> nilMotivePart
 
 caseMotive = do (xs,as,b) <- caseMotiveParts
-                return $ caseMotiveH xs as b
+                let xsFreshDummies =
+                      map unBNSString
+                          (dummiesToFreshNames
+                            (freeVarNames b ++ (freeVarNames =<< as))
+                            (map BNSString xs))
+                return $ caseMotiveH xsFreshDummies as b
 
-clause = do (xs,ps) <- try $ do
-              xsps <- patternSeq
+clause = do ps <- try $ do
+              ps <- pattern `sepBy` reservedOp "||"
               _ <- reservedOp "->"
-              return xsps
+              return ps
             b <- term
-            return $ clauseH xs ps b
+            let freshenedPs = dummiesToFreshNames (freeVarNames b) ps
+                xs = freeVarNames =<< freshenedPs
+            return $ clauseH xs freshenedPs b
 
 caseExp = do _ <- reserved "case"
              ms <- caseArg `sepBy1` reservedOp "||"
@@ -232,16 +249,14 @@ whereTermDecl = do (x,t) <- try $ do
 
 
 patternMatchClause x = do _ <- symbol x
-                          (xs,ps) <- wherePatternSeq
+                          ps <- many wherePattern
                           _ <- reservedOp "="
                           b <- term
-                          return (xs,ps,b)
+                          let freshenedPs = dummiesToFreshNames (freeVarNames b) ps
+                              xs = freeVarNames =<< freshenedPs
+                          return (xs,freshenedPs,b)
 
 wherePattern = assertionPattern <|> parenPattern <|> noArgConPattern <|> varPattern
-
-wherePatternSeq = do xsps <- many wherePattern
-                     let (xss,ps) = unzip xsps
-                     return (concat xss,ps)
 
 termDecl = eqTermDecl <|> whereTermDecl
 

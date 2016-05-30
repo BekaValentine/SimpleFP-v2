@@ -2,6 +2,7 @@
 
 {-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -97,7 +98,7 @@ type Clause = ClauseF (Scope TermF)
 data PatternFF a r
   = ConPat String [r]
   | AssertionPat a
-  deriving (Functor,Foldable)
+  deriving (Functor,Foldable,Traversable)
 
 
 instance Bifunctor PatternFF where
