@@ -671,9 +671,23 @@ sortModules mods0 = go [] mods0
               partition (\(Module _ settings _) ->
                 all (\s -> openModule s `elem` prev) settings) mods
         in if null next
-           then throwError $ "The following modules have circular dependencies which prevent resolution: "
-                          ++ unwords [ n | Module n _ _ <- rest ]
+           then diagnoseResolutionError mods
            else return (next,rest)
+    
+    diagnoseResolutionError :: [Module] -> Elaborator ([Module], [Module])
+    diagnoseResolutionError rest =
+      let (mnames, onamess) = unzip [ (mname, map openModule oss) | Module mname oss _ <- rest ]
+          onames = nub (concat onamess)
+          missing = onames \\ mnames
+      in if null missing
+         then
+           throwError $
+             "The following modules have circular dependencies which " ++
+             "prevent resolution: " ++ unwords [ n | Module n _ _ <- rest ]
+         else
+           throwError $
+             "The following modules are opened but do not exist: " ++
+             unwords missing
     
     go :: [String] -> [Module] -> Elaborator [Module]
     go _ []
