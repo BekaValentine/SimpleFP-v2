@@ -94,6 +94,10 @@ forallType = do _ <- reserved "forall"
 
 parenType = parens datatype
 
+datatype = funType <|> parenType <|> forallType <|> typeCon <|> typeVar
+
+
+
 tyConArg = parenType <|> noArgTypeCon <|> typeVar
 
 funLeft = parenType <|> typeCon <|> typeVar
@@ -101,8 +105,6 @@ funLeft = parenType <|> typeCon <|> typeVar
 funRight = funType <|> parenType <|> forallType <|> typeCon <|> typeVar
 
 forallBody = funType <|> parenType <|> forallType <|> typeCon <|> typeVar
-
-datatype = funType <|> parenType <|> forallType <|> typeCon <|> typeVar
 
 
 
@@ -158,8 +160,6 @@ conPattern = do c <- decName
 
 parenPattern = parens pattern
 
-conPatternArg = parenPattern <|> noArgConPattern <|> varPattern
-
 pattern = parenPattern <|> conPattern <|> varPattern
 
 clause = do ps <- try $ do
@@ -181,6 +181,12 @@ caseExp = do _ <- reserved "case"
 
 parenTerm = parens term
 
+term = annotation <|> application <|> parenTerm <|> lambda <|> conData <|> caseExp <|> variable
+
+
+
+
+
 annLeft = application <|> parenTerm <|> conData <|> variable
 
 lamBody = annotation <|> application <|> parenTerm <|> lambda <|> conData <|> caseExp <|> variable
@@ -193,7 +199,11 @@ conArg = parenTerm <|> noArgConData <|> variable
 
 caseArg = annotation <|> application <|> parenTerm <|> lambda <|> conData <|> variable
 
-term = annotation <|> application <|> parenTerm <|> lambda <|> conData <|> caseExp <|> variable
+conPatternArg = parenPattern <|> noArgConPattern <|> varPattern
+
+
+
+
 
 parseTerm str = case parse (whiteSpace *> term <* eof) "(unknown)" str of
                   Left e -> Left (show e)

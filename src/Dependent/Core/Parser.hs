@@ -59,6 +59,9 @@ decName = do lookAhead upper
              identifier
 
 
+
+
+
 -- term parsers
 
 variable = do x <- varName
@@ -146,10 +149,6 @@ conPattern = do c <- decName
 
 parenPattern = parens pattern
 
-conPatternArg = assertionPattern <|> parenPattern <|> noArgConPattern <|> varPattern
-
-assertionPatternArg = parenTerm <|> noArgConData <|> variable <|> typeType
-
 pattern = assertionPattern <|> parenPattern <|> conPattern <|> varPattern
 
 consMotivePart = do (xs,a) <- try $ parens $ do
@@ -195,6 +194,12 @@ caseExp = do _ <- reserved "case"
 
 parenTerm = parens term
 
+term = annotation <|> funType <|> application <|> parenTerm <|> lambda <|> conData <|> caseExp <|> variable <|> typeType
+
+
+
+
+
 annLeft = application <|> parenTerm <|> conData <|> variable <|> typeType
 
 annRight = funType <|> application <|> parenTerm <|> lambda <|> conData <|> caseExp <|> variable <|> typeType
@@ -213,11 +218,20 @@ conArg = parenTerm <|> noArgConData <|> variable <|> typeType
 
 caseArg = annotation <|> funType <|> application <|> parenTerm <|> lambda <|> conData <|> variable <|> typeType
 
-term = annotation <|> funType <|> application <|> parenTerm <|> lambda <|> conData <|> caseExp <|> variable <|> typeType
+conPatternArg = assertionPattern <|> parenPattern <|> noArgConPattern <|> varPattern
+
+assertionPatternArg = parenTerm <|> noArgConData <|> variable <|> typeType
+
+
+
+
 
 parseTerm str = case parse (whiteSpace *> term <* eof) "(unknown)" str of
                   Left e -> Left (show e)
                   Right p -> Right p
+
+
+
 
 
 

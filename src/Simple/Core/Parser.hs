@@ -81,11 +81,13 @@ funType = do arg <- try $ do
 
 parenType = parens datatype
 
+datatype = funType <|> typeCon <|> parenType
+
+
+
 funLeft = typeCon <|> parenType
 
 funRight = funType <|> typeCon <|> parenType
-
-datatype = funType <|> typeCon <|> parenType
 
 
 
@@ -141,8 +143,6 @@ conPattern = do c <- decName
 
 parenPattern = parens pattern
 
-conPatternArg = parenPattern <|> noArgConPattern <|> varPattern
-
 pattern = parenPattern <|> conPattern <|> varPattern
 
 clause = do ps <- try $ do
@@ -164,6 +164,12 @@ caseExp = do _ <- reserved "case"
 
 parenTerm = parens term
 
+term = annotation <|> application <|> parenTerm <|> lambda <|> conData <|> caseExp <|> variable
+
+
+
+
+
 annLeft = application <|> parenTerm <|> conData <|> variable
 
 lamBody = annotation <|> application <|> parenTerm <|> lambda <|> conData <|> caseExp <|> variable
@@ -176,7 +182,11 @@ conArg = parenTerm <|> noArgConData <|> variable
 
 caseArg = annotation <|> application <|> parenTerm <|> lambda <|> conData <|> variable
 
-term = annotation <|> application <|> parenTerm <|> lambda <|> conData <|> caseExp <|> variable
+conPatternArg = parenPattern <|> noArgConPattern <|> varPattern
+
+
+
+
 
 parseTerm str = case parse (whiteSpace *> term <* eof) "(unknown)" str of
                   Left e -> Left (show e)

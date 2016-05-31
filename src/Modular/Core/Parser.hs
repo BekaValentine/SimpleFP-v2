@@ -66,6 +66,8 @@ decName = do lookAhead upper
              identifier
 
 
+
+
 -- term parsers
 
 variable = do x <- varName
@@ -203,20 +205,6 @@ conPattern = do c <- constructor
 
 parenPattern = parens pattern
 
-rawExplConPatternArg = assertionPattern <|> parenPattern <|> noArgConPattern <|> varPattern
-
-explConPatternArg = do p <- rawExplConPatternArg
-                       return (Expl,p)
-
-rawImplConPatternArg = assertionPattern <|> parenPattern <|> conPattern <|> varPattern
-
-implConPatternArg = do p <- braces $ rawImplConPatternArg
-                       return (Impl,p)
-
-conPatternArg = explConPatternArg <|> implConPatternArg
-
-assertionPatternArg = parenTerm <|> noArgConData <|> variable <|> typeType
-
 pattern = assertionPattern <|> parenPattern <|> conPattern <|> varPattern
 
 consMotivePart = do (xs,a) <- try $ parens $ do
@@ -263,6 +251,11 @@ caseExp = do _ <- reserved "case"
 
 parenTerm = parens term
 
+term = annotation <|> funType <|> application <|> parenTerm <|> lambda <|> dottedName <|> conData <|> caseExp <|> variable <|> typeType
+
+
+
+
 annLeft = application <|> parenTerm <|> dottedName <|> conData <|> variable <|> typeType
 
 annRight = funType <|> application <|> parenTerm <|> lambda <|> dottedName <|> conData <|> caseExp <|> variable <|> typeType
@@ -301,11 +294,30 @@ conArg = explConArg <|> implConArg
 
 caseArg = annotation <|> funType <|> application <|> parenTerm <|> lambda <|> dottedName <|> conData <|> variable <|> typeType
 
-term = annotation <|> funType <|> application <|> parenTerm <|> lambda <|> dottedName <|> conData <|> caseExp <|> variable <|> typeType
+rawExplConPatternArg = assertionPattern <|> parenPattern <|> noArgConPattern <|> varPattern
+
+explConPatternArg = do p <- rawExplConPatternArg
+                       return (Expl,p)
+
+rawImplConPatternArg = assertionPattern <|> parenPattern <|> conPattern <|> varPattern
+
+implConPatternArg = do p <- braces $ rawImplConPatternArg
+                       return (Impl,p)
+
+conPatternArg = explConPatternArg <|> implConPatternArg
+
+assertionPatternArg = parenTerm <|> noArgConData <|> variable <|> typeType
+
+
+
+
 
 parseTerm str = case parse (whiteSpace *> term <* eof) "(unknown)" str of
                   Left e -> Left (show e)
                   Right p -> Right p
+
+
+
 
 
 

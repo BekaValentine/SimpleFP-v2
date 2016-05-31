@@ -19,6 +19,8 @@ import Require.Core.DeclArg
 import Require.Core.Term
 import Require.Core.Program
 
+import Debug
+
 
 
 
@@ -89,8 +91,6 @@ recordProj = do (m,f) <- try $ do
                   _ <- reservedOp "."
                   varName
                 return $ foldl' recordProjH m (f:fieldNames)
-
-recProjArg = recordType <|> recordCon <|> dottedName <|> variable <|> parenTerm <|> typeType
 
 dottedThings = recordProj <|> dottedName
 
@@ -219,20 +219,6 @@ conPattern = do c <- constructor
 
 parenPattern = parens pattern
 
-rawExplConPatternArg = assertionPattern <|> parenPattern <|> noArgConPattern <|> varPattern
-
-explConPatternArg = do p <- rawExplConPatternArg
-                       return (Expl,p)
-
-rawImplConPatternArg = assertionPattern <|> parenPattern <|> conPattern <|> varPattern
-
-implConPatternArg = do p <- braces $ rawImplConPatternArg
-                       return (Impl,p)
-
-conPatternArg = explConPatternArg <|> implConPatternArg
-
-assertionPatternArg = parenTerm <|> noArgConData <|> variable <|> typeType
-
 pattern = assertionPattern <|> parenPattern <|> conPattern <|> varPattern
 
 consMotivePart = do (xs,a) <- try $ parens $ do
@@ -288,16 +274,20 @@ recordType = do _ <- reserved "Rec"
                    return (x,t)
 
 emptyRecordCon = try $ do
+                   debug_ "Trying empty record constructor."
                    braces $ return ()
                    return $ recordConH []
 
 nonEmptyRecordCon = do x <- try $ do
+                         debug_ "Trying non-empty record constructor."
                          _ <- symbol "{"
                          x <- varName
                          _ <- reservedOp "="
                          return x
                        guard (x /= "_")
+                       debug_ ("First field: " ++ x)
                        m <- term
+                       debug_ "First field value."
                        xms' <- many $ do
                          _ <- reservedOp ","
                          x' <- varName
@@ -308,7 +298,9 @@ nonEmptyRecordCon = do x <- try $ do
                        _ <- symbol "}"
                        return $ recordConH ((x,m):xms')
 
-recordCon = emptyRecordCon <|> nonEmptyRecordCon
+recordCon = do r <- emptyRecordCon <|> nonEmptyRecordCon
+               debug_ "Record parsed."
+               return r
 
 bareQuotedType = do _ <- try $ reserved "Quoted"
                     a <- quotedTypeArg
@@ -363,6 +355,13 @@ require = do _ <- try $ reserved "require"
 
 parenTerm = parens term
 
+term = annotation <|> funType <|> application <|> continue <|> dottedThings
+         <|> parenTerm <|> lambda <|> shift <|> reset <|> require <|> conData <|> quotedType <|> quote <|> unquote <|> caseExp <|> variable <|> typeType <|> recordType <|> recordCon
+
+
+
+
+
 annLeft = application <|> continue <|> dottedThings <|> parenTerm <|> conData <|> quotedType <|> quote <|> unquote <|> variable <|> typeType <|> recordType <|> recordCon
 
 annRight = funType <|> application <|> continue <|> dottedThings <|> parenTerm <|> lambda <|> shift <|> reset <|> require <|> conData <|> quotedType <|> quote <|> unquote <|> caseExp <|> variable <|> typeType <|> recordType <|> recordCon
@@ -401,6 +400,22 @@ conArg = explConArg <|> implConArg
 
 caseArg = annotation <|> funType <|> application <|> continue <|> dottedThings <|> parenTerm <|> lambda <|> shift <|> reset <|> require <|> conData <|> quotedType <|> quote <|> unquote <|> variable <|> typeType <|> recordType <|> recordCon
 
+rawExplConPatternArg = assertionPattern <|> parenPattern <|> noArgConPattern <|> varPattern
+
+explConPatternArg = do p <- rawExplConPatternArg
+                       return (Expl,p)
+
+rawImplConPatternArg = assertionPattern <|> parenPattern <|> conPattern <|> varPattern
+
+implConPatternArg = do p <- braces $ rawImplConPatternArg
+                       return (Impl,p)
+
+conPatternArg = explConPatternArg <|> implConPatternArg
+
+assertionPatternArg = parenTerm <|> noArgConData <|> variable <|> typeType
+
+recProjArg = recordType <|> recordCon <|> dottedName <|> variable <|> parenTerm <|> typeType
+
 quotedTypeArg = dottedThings <|> parenTerm <|> noArgConData <|> variable <|> typeType <|> quote <|> unquote <|> recordType <|> recordCon
 
 quoteArg = dottedThings <|> parenTerm <|> noArgConData <|> caseExp <|> variable <|> typeType <|> recordType <|> recordCon
@@ -417,7 +432,8 @@ requireType = application <|> continue <|> dottedThings <|> parenTerm <|> conDat
 
 requireBody = annotation <|> funType <|> application <|> continue <|> dottedThings <|> parenTerm <|> lambda <|> shift <|> reset <|> require <|> conData <|> quotedType <|> quote <|> unquote <|> caseExp <|> variable <|> typeType <|> recordType <|> recordCon
 
-term = annotation <|> funType <|> application <|> continue <|> dottedThings <|> parenTerm <|> lambda <|> shift <|> reset <|> require <|> conData <|> quotedType <|> quote <|> unquote <|> caseExp <|> variable <|> typeType <|> recordType <|> recordCon
+
+
 
 parseTerm str = case parse (whiteSpace *> term <* eof) "(unknown)" str of
                   Left e -> Left (show e)
@@ -445,9 +461,11 @@ whereTermDecl = do (x,t) <- try $ do
                      t <- term
                      _ <- reserved "where"
                      return (x,t)
+                   debug_ ("Parsing where declaration: " ++ x)
                    _ <- optional (reservedOp "|")
                    preclauses <- patternMatchClause x `sepBy1` reservedOp "|"
                    _ <- reserved "end"
+                   debug_ ("Finished where declaration: " ++ x)
                    return $ WhereDeclaration x t preclauses
     
 letFamilyDecl = do try $ do
@@ -497,14 +515,20 @@ instancePatternMatchClause c
               , (xs, map snd freshenedPs, b)
               )
 
-patternMatchClause x = do _ <- symbol x
+patternMatchClause x = do debug_ ("Parsing pattern match clause: " ++ x)
+                          _ <- symbol x
+                          debug_ "A"
                           ps <- many wherePattern
+                          debug_ "B"
                           _ <- reservedOp "="
+                          debug_ "C"
                           b <- term
+                          debug_ "D"
                           let freshenedPs =
                                 dummiesToFreshNames (freeVarNames b) ps
                               xs = do (_,p) <- freshenedPs
                                       freeVarNames p
+                          debug_ ("Finished pattern match clause: " ++ x)
                           return ( map fst freshenedPs
                                  , (xs, map snd freshenedPs, b)
                                  )
@@ -521,10 +545,14 @@ implWherePattern = do p <- braces $ rawImplWherePattern
 
 wherePattern = implWherePattern <|> explWherePattern
 
-termDecl = letFamilyDecl
-       <|> letInstanceDecl
-       <|> eqTermDecl
-       <|> whereTermDecl
+termDecl = do debug_ "\nParsing term."
+              r <- letFamilyDecl
+                   <|> letInstanceDecl
+                   <|> eqTermDecl
+                   <|> whereTermDecl
+              debug_ "Finished parsing term:"
+              debug_ (show r)
+              return r
 
 alternative = do c <- decName
                  as <- alternativeArgs

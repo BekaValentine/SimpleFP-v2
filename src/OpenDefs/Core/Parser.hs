@@ -66,6 +66,9 @@ decName = do lookAhead upper
              identifier
 
 
+
+
+
 -- term parsers
 
 variable = do x <- varName
@@ -87,8 +90,6 @@ recordProj = do (m,f) <- try $ do
                   _ <- reservedOp "."
                   varName
                 return $ foldl' recordProjH m (f:fieldNames)
-
-recProjArg = recordType <|> recordCon <|> dottedName <|> variable <|> parenTerm <|> typeType
 
 dottedThings = recordProj <|> dottedName
 
@@ -217,20 +218,6 @@ conPattern = do c <- constructor
 
 parenPattern = parens pattern
 
-rawExplConPatternArg = assertionPattern <|> parenPattern <|> noArgConPattern <|> varPattern
-
-explConPatternArg = do p <- rawExplConPatternArg
-                       return (Expl,p)
-
-rawImplConPatternArg = assertionPattern <|> parenPattern <|> conPattern <|> varPattern
-
-implConPatternArg = do p <- braces $ rawImplConPatternArg
-                       return (Impl,p)
-
-conPatternArg = explConPatternArg <|> implConPatternArg
-
-assertionPatternArg = parenTerm <|> noArgConData <|> variable <|> typeType
-
 pattern = assertionPattern <|> parenPattern <|> conPattern <|> varPattern
 
 consMotivePart = do (xs,a) <- try $ parens $ do
@@ -310,6 +297,12 @@ recordCon = emptyRecordCon <|> nonEmptyRecordCon
 
 parenTerm = parens term
 
+term = annotation <|> funType <|> application <|> dottedThings <|> parenTerm <|> lambda <|> conData <|> caseExp <|> variable <|> typeType <|> recordType <|> recordCon
+
+
+
+
+
 annLeft = application <|> dottedThings <|> parenTerm <|> conData <|> variable <|> typeType <|> recordType <|> recordCon
 
 annRight = funType <|> application <|> dottedThings <|> parenTerm <|> lambda <|> conData <|> caseExp <|> variable <|> typeType <|> recordType <|> recordCon
@@ -348,11 +341,33 @@ conArg = explConArg <|> implConArg
 
 caseArg = annotation <|> funType <|> application <|> dottedThings <|> parenTerm <|> lambda <|> conData <|> variable <|> typeType <|> recordType <|> recordCon
 
-term = annotation <|> funType <|> application <|> dottedThings <|> parenTerm <|> lambda <|> conData <|> caseExp <|> variable <|> typeType <|> recordType <|> recordCon
+rawExplConPatternArg = assertionPattern <|> parenPattern <|> noArgConPattern <|> varPattern
+
+explConPatternArg = do p <- rawExplConPatternArg
+                       return (Expl,p)
+
+rawImplConPatternArg = assertionPattern <|> parenPattern <|> conPattern <|> varPattern
+
+implConPatternArg = do p <- braces $ rawImplConPatternArg
+                       return (Impl,p)
+
+conPatternArg = explConPatternArg <|> implConPatternArg
+
+assertionPatternArg = parenTerm <|> noArgConData <|> variable <|> typeType
+
+recProjArg = recordType <|> recordCon <|> dottedName <|> variable <|> parenTerm <|> typeType
+
+
+
+
+
 
 parseTerm str = case parse (whiteSpace *> term <* eof) "(unknown)" str of
                   Left e -> Left (show e)
                   Right p -> Right p
+
+
+
 
 
 
