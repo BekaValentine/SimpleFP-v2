@@ -87,7 +87,10 @@ typeVar = do x <- varName
              return $ Var (Free (FreeVar x))
 
 forallType = do _ <- reserved "forall"
-                xs <- many1 varName
+                xs <- many1 $ do
+                        x <- varName
+                        guard (x /= "_")
+                        return x
                 _ <- reservedOp "."
                 b <- forallBody
                 return $ helperFold forallH xs b
