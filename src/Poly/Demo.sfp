@@ -1,3 +1,4 @@
+{-
 data Bool = True | False end
 
 let not : Bool -> Bool
@@ -32,11 +33,13 @@ let mul : Nat -> Nat -> Nat
       | Suc n -> plus y (mul n y)
       end
 end
+-}
 
 let id : forall a. a -> a
   = \x -> x
 end
 
+{-
 let const : forall a. forall b. a -> b -> a
  = \x -> \y -> x
 end
@@ -72,3 +75,4 @@ end
 let compose : forall a. forall b. forall c. (b -> c) -> (a -> b) -> a -> c
   = \f -> \g -> \x -> f (g x)
 end
+-}

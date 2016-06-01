@@ -38,7 +38,7 @@ languageDef = Token.LanguageDef
                 , Token.identLetter = alphaNum <|> char '_' <|> char '\''
                 , Token.opStart = oneOf ""
                 , Token.opLetter = oneOf ""
-                , Token.reservedNames = ["data","case","of","end","where","let"]
+                , Token.reservedNames = ["data","case","of","end","where","let","forall"]
                 , Token.reservedOpNames = ["|","->","\\",":","=","||"]
                 , Token.caseSensitive = True
                 }
