@@ -4,6 +4,21 @@ A re-do of the SimpleFP repo using de Bruijn index ABTs instead of HOAS.
 
 Each file is also now heavily documented in a literate style, and where applicable, there are formal type theoretic specs for the implemented functionality. The specs are more-or-less the real ones, in that they're real enough to make it clear what's going on, without also writing down every little detail.
 
+Within any given variant, the general reading order is
+
+1. Core
+  1. Term: Defines what a term is
+  2. Type (where applicable): Defines what a type is
+  3. Program: Defines what a program is
+  4. Evaluation: Defines how terms evaluate
+2. Monadic/Unification
+  1. Elaborator: Defines what an elaborator is
+  2. Unification (where applicable): Defines how unification works
+  3. TypeChecking: Defines the type checking components of elaboration
+  4. Elaboration: Defines the program-level elaboration process
+
+Other parts of the variants can be read as desired, mostly, or as the need arises. The Utils stuff is similarly as-needed.
+
 The variants should be read in the following order, going from simplest to most complex:
 
 1.  *Simple*
