@@ -22,8 +22,8 @@ import Data.Functor.Classes
 
 
 instance Eq1 TypeF where
-  eq1 (TyCon c) (TyCon c') =
+  liftEq _ (TyCon c) (TyCon c') =
     c == c'
-  eq1 (Fun a b) (Fun a' b') =
-    a == a' && b == b'
-  eq1 _ _ = False
+  liftEq eq (Fun a b) (Fun a' b') =
+    eq a a' && eq b b'
+  liftEq _ _ _ = False

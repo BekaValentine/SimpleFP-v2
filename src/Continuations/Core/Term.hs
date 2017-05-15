@@ -142,14 +142,15 @@ instance Bizippable PatternFF where
 
 
 instance Bitraversable PatternFF where
-  bisequenceA (ConPat c ps) =
-    ConPat c <$> sequenceA [ (,) plic <$> p
-                           | (plic,p) <- ps
-                           ]
-  bisequenceA (AssertionPat m) =
-    AssertionPat <$> m
-  bisequenceA MakeMeta =
-    pure MakeMeta
+  bitraverse f g = biseq . bimap f g where
+    biseq (ConPat c ps) =
+      ConPat c <$> sequenceA [ (,) plic <$> p
+                             | (plic,p) <- ps
+                             ]
+    biseq (AssertionPat m) =
+      AssertionPat <$> m
+    biseq MakeMeta =
+      pure MakeMeta
 
 
 -- | 'PatternF' is the type of pattern shaped containers for terms. The

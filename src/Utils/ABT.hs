@@ -726,8 +726,15 @@ instance Eq1 f => Eq (Scope f) where
 
 
 
+-- needed for Eq1 PatternF instance
+liftABTEq :: (f (Scope f) -> g (Scope g) -> Bool) -> ABT f -> ABT g -> Bool
+liftABTEq _ (Var x) (Var y) = x == y
+liftABTEq eq (In x) (In y) = eq x y
+liftABTEq _ _ _ = False
 
-
+liftScopeEq :: (ABT f -> ABT g -> Bool) -> Scope f -> Scope g -> Bool
+liftScopeEq eq (Scope ns _ x) (Scope ns' _ y) =
+  length ns == length ns' && eq x y
 
 
 -- * Zipping

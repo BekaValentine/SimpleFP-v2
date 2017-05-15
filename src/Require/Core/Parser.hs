@@ -19,8 +19,8 @@ import Require.Core.DeclArg
 import Require.Core.Term
 import Require.Core.Program
 
-import Debug
-
+--import Debug
+debug_ = const $ return ()
 
 
 
