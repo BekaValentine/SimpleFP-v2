@@ -1,0 +1,17 @@
+
+data Eq (a : Type) (x : a) (y : a) where
+| Refl (a : Type) (x : a) : Eq a x x
+end
+
+let anyEq :
+  (a : Type) ->
+  (x : a) ->
+  (y : a) ->
+  Eq a x y =
+  \a -> \x -> \y ->
+  case y 
+  motive (y' : a) || Eq a x y'
+  of
+  | .x -> Refl a x
+  end
+end
