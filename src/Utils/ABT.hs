@@ -87,10 +87,12 @@ deriving instance Show (f (Scope f)) => Show (ABT f)
 -- binder that binds the index. All both have string values that represent the
 -- stored display name of the variable, for pretty printing.
 
+data MetaType = Exist | Constraint deriving (Show,Eq,Ord)
+
 data Variable
   = Free FreeVar
   | Bound String BoundVar
-  | Meta MetaVar
+  | Meta MetaType MetaVar
   deriving (Show)
 
 
@@ -99,7 +101,7 @@ data Variable
 name :: Variable -> String
 name (Free (FreeVar n)) = n
 name (Bound n _)        = n
-name (Meta i)           = "?" ++ show i
+name (Meta _ i)           = "?" ++ show i
 
 
 -- | Equality of variables is by the parts which identify them, so names for
@@ -108,7 +110,7 @@ name (Meta i)           = "?" ++ show i
 instance Eq Variable where
   Free x    == Free y    = x == y
   Bound _ i == Bound _ j = i == j
-  Meta m    == Meta n    = m == n
+  Meta _ m  == Meta _ n  = m == n
   _         == _         = False
 
 
@@ -659,9 +661,9 @@ freeToDefinedScope d (Scope ns _ b) =
 
 substMetas :: (Functor f, Foldable f) => [(MetaVar, ABT f)] -> ABT f -> ABT f
 substMetas [] x = x
-substMetas subs (Var (Meta m)) =
+substMetas subs (Var (Meta mt m)) =
   case lookup m subs of
-    Nothing -> Var (Meta m)
+    Nothing -> Var (Meta mt m)
     Just x -> x
 substMetas _ (Var v) =
   Var v
@@ -682,7 +684,7 @@ occurs :: (Functor f, Foldable f) => MetaVar -> ABT f -> Bool
 occurs m x = fold ocAlgV ocAlgRec ocAlgSc x
   where
     ocAlgV :: Variable -> Bool
-    ocAlgV (Meta m') = m == m'
+    ocAlgV (Meta _ m') = m == m'
     ocAlgV _ = False
     
     ocAlgRec :: Foldable f => f Bool -> Bool
@@ -697,7 +699,7 @@ occurs m x = fold ocAlgV ocAlgRec ocAlgSc x
 metaVars :: (Functor f, Foldable f) => ABT f -> [MetaVar]
 metaVars = fold mvAlgV mvAlgRec mvAlgSc
   where
-    mvAlgV (Meta n) = [n]
+    mvAlgV (Meta _ n) = [n]
     mvAlgV _        = []
     
     mvAlgRec :: Foldable f => f [MetaVar] -> [MetaVar]

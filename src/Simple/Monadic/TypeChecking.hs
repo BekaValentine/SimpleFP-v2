@@ -140,7 +140,7 @@ infer (Var (Bound _ _)) =
   error "A bound variable should never be the subject of type inference."
 infer (Var (Free x)) =
   typeInContext x
-infer (Var (Meta _)) =
+infer (Var (Meta _ _)) =
   error "Metavariables should not occur in this type checker."
 infer (In (Defined n)) =
   typeInDefinitions n
@@ -275,7 +275,7 @@ checkPattern (Var (Bound _ _)) _ =
   error "A bound variable should never be the subject of type checking."
 checkPattern (Var (Free x)) t =
   return [(x,t)]
-checkPattern (Var (Meta _)) _ =
+checkPattern (Var (Meta _ _)) _ =
   error "Metavariables should not occur in this type checker."
 checkPattern (In (ConPat c ps)) t =
   do ConSig args ret <- typeInSignature c

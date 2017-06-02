@@ -119,7 +119,7 @@ isType (Var (Free x)) =
   tyVarExists x
 isType (Var (Bound _ _)) =
   error "Bound type variables should not be the subject of type checking."
-isType (Var (Meta _)) =
+isType (Var (Meta _ _)) =
   error "Metavariables should not be the subject of type checking."
 isType (In (TyCon c as)) =
   do TyConSig ar <- tyconExists c
@@ -150,7 +150,7 @@ instantiateParams argscs retsc =
   do metas <- replicateM
                (length (names retsc))
                (nextElab nextMeta)
-     let ms = map (Var . Meta) metas
+     let ms = map (Var . Meta Exist) metas
      return ( map (\sc -> instantiate sc ms) argscs
             , instantiate retsc ms
             )
@@ -169,7 +169,7 @@ instantiateParams argscs retsc =
 instantiateQuantifiers :: Type -> TypeChecker Type
 instantiateQuantifiers (In (Forall sc)) =
   do meta <- nextElab nextMeta
-     let m = Var (Meta meta)
+     let m = Var (Meta Exist meta)
      instantiateQuantifiers (instantiate sc [m])
 instantiateQuantifiers t = return t
 
@@ -215,7 +215,7 @@ inferify (Var (Bound _ _)) =
   error "A bound variable should never be the subject of type inference."
 inferify (Var (Free n)) =
   typeInContext n
-inferify (Var (Meta _)) =
+inferify (Var (Meta _ _)) =
   error "Metavariables should not be the subject of type inference."
 inferify (In (Defined x)) =
   typeInDefinitions x
@@ -227,7 +227,7 @@ inferify (In (Ann m t)) =
 inferify (In (Lam sc)) =
   do [n] <- freshRelTo (names sc) context
      meta <- nextElab nextMeta
-     let arg = Var (Meta meta)
+     let arg = Var (Meta Exist meta)
      ret <- extendElab context [(n, arg)]
               $ inferify (instantiate sc [Var (Free n)])
      subs <- getElab substitution
@@ -287,7 +287,7 @@ inferifyClause patTys (Clause pscs sc) =
          xs2 = map (Var . Free) ns
      ctx' <- forM ns $ \n -> do
                m <- nextElab nextMeta
-               return (n,Var (Meta m))
+               return (n,Var (Meta Exist m))
      extendElab context ctx' $ do
        zipWithM_ checkifyPattern
                  (map (\psc -> instantiate psc xs1) pscs)
@@ -403,7 +403,7 @@ subtype t (In (Forall sc')) =
      subtype t (instantiate sc' [Var (Free n)])
 subtype (In (Forall sc)) t' =
   do meta <- nextElab nextMeta
-     let x2 = Var (Meta meta)
+     let x2 = Var (Meta Exist meta)
      subtype (instantiate sc [x2]) t'
 subtype (In (Fun arg ret)) (In (Fun arg' ret')) =
   do subtype (instantiate0 arg') (instantiate0 arg)
@@ -432,7 +432,7 @@ subtype t t' =
 checkifyPattern :: Pattern -> Type -> TypeChecker ()
 checkifyPattern (Var (Bound _ _)) _ =
   error "A bound variable should not be the subject of pattern type checking."
-checkifyPattern (Var (Meta _)) _ =
+checkifyPattern (Var (Meta _ _)) _ =
   error "Metavariables should not be the subject of type checking."
 checkifyPattern (Var (Free n)) t =
   do t' <- typeInContext n

@@ -163,7 +163,7 @@ inferify (Var (Free x)) =
      return  t
 inferify (Var (Bound _ _)) =
   error "Bound type variables should not be the subject of type checking."
-inferify (Var (Meta x)) =
+inferify (Var (Meta _ x)) =
   throwError $ "The metavariable " ++ show x
             ++ " appears in checkable code, when it should not."
 inferify (In (Defined x)) =
@@ -326,7 +326,7 @@ checkifyPattern (Var (Free x)) t =
   do t' <- typeInContext x
      unifyHelper t (NormalTerm t')  -- @t'@ is guaranteed to be normal
      return (Var (Free x), [])
-checkifyPattern (Var (Meta _)) _ =
+checkifyPattern (Var (Meta _ _)) _ =
   error "Metavariables should not be the subject of pattern type checking."
 checkifyPattern (In (ConPat c ps)) t =
   do consig@(ConSig (BindingTelescope ascs _)) <- typeInSignature c
@@ -344,7 +344,7 @@ checkifyPattern (In (ConPat c ps)) t =
 checkifyPattern (In (AssertionPat m)) t =
   do checkify m t
      mv <- nextElab nextMeta
-     return (Var $ Meta mv, [(Var $ Meta mv, m)])
+     return (Var $ Meta Constraint mv, [(Var $ Meta Constraint mv, m)])
 
 
 
@@ -465,7 +465,7 @@ checkifyClause (Clause pscs sc) mot@(CaseMotive (BindingTelescope ascs _)) =
          xs2 = map (Var . Free) ns
      ctx' <- forM ns $ \n ->
                do m <- nextElab nextMeta
-                  return (n, Var (Meta m))
+                  return (n, Var (Meta Exist m))
      extendElab context ctx' $
        do ret <- checkifyPatternsCaseMotive
                    (map (\psc -> patternInstantiate psc xs1 xs2)
