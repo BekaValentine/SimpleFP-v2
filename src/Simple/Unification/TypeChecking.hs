@@ -142,7 +142,7 @@ inferify (Var (Bound _ _)) =
   error "A bound variable should never be the subject of type inference."
 inferify (Var (Free x)) =
   typeInContext x
-inferify (Var (Meta _)) =
+inferify (Var (Meta _ _)) =
   error "Metavariables should not occur in this type checker."
 inferify (In (Defined x)) =
   typeInDefinitions x
@@ -152,7 +152,7 @@ inferify (In (Ann m t)) =
 inferify (In (Lam sc)) =
   do [n] <- freshRelTo (names sc) context
      meta <- nextElab nextMeta
-     let arg = Var (Meta meta)
+     let arg = Var (Meta Exist meta)
      ret <- extendElab context [(n, arg)]
               $ inferify (instantiate sc [Var (Free n)])
      subs <- getElab substitution
@@ -203,7 +203,7 @@ inferifyClause patTys (Clause pscs sc) =
          xs2 = map (Var . Free) ns
      ctx' <- forM ns $ \n -> do
                m <- nextElab nextMeta
-               return (n,Var (Meta m))
+               return (n,Var (Meta Exist m))
      extendElab context ctx' $ do
        zipWithM_ checkifyPattern
                  (map (\psc -> instantiate psc xs1) pscs)
@@ -306,7 +306,7 @@ checkifyPattern (Var (Free n)) t =
      unify substitution context t t'
 checkifyPattern (Var (Bound _ _)) _ =
   error "A bound variable should not be the subject of pattern type checking."
-checkifyPattern (Var (Meta _)) _ =
+checkifyPattern (Var (Meta _ _)) _ =
   error "A metavariable should not be the subject of pattern type checking."
 checkifyPattern (In (ConPat c ps)) t =
   do ConSig args ret <- typeInSignature c

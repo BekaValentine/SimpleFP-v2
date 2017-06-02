@@ -35,7 +35,7 @@ data Telescope a
 
 
 instance Eq1 Telescope where
-  eq1 (Telescope as) (Telescope as') = as == as'
+  liftEq eq (Telescope as) (Telescope as') = liftEq eq as as'
 
 
 namesTelescope :: Telescope (Scope f) -> [String]
@@ -153,8 +153,8 @@ data BindingTelescope a
 
 
 instance Eq1 BindingTelescope where
-  eq1 (BindingTelescope as b) (BindingTelescope as' b') =
-    as == as' && b == b'
+  liftEq eq (BindingTelescope as b) (BindingTelescope as' b') =
+    liftEq eq as as' && eq b b'
 
 
 namesBindingTelescope :: BindingTelescope (Scope f) -> [String]

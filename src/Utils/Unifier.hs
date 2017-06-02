@@ -144,15 +144,15 @@ updateSubstitutionJ subsl ctxl subs =
 
 -- | Equations are just pairs of values.
 
-data Equation a = Equation a a
+data Equation a = Equation Bool a a
 
 
 -- | Equations can be substituted into, as will be necessary during solving.
 
 substMetasEquation :: (Functor f, Foldable f)
                    => Substitution f -> Equation (ABT f) -> Equation (ABT f)
-substMetasEquation subs (Equation l r) =
-  Equation (substMetas subs l) (substMetas subs r)
+substMetasEquation subs (Equation f l r) =
+  Equation f (substMetas subs l) (substMetas subs r)
 
 
 
@@ -162,7 +162,8 @@ substMetasEquation subs (Equation l r) =
 -- ABTs. This involves producing a new set of equations from the input.
 
 class Monad m => MonadUnify f m where
-  equate :: f (Scope f)
+  equate :: Bool
+         -> f (Scope f)
          -> f (Scope f)
          -> m [Equation (ABT f)]
 
@@ -186,15 +187,20 @@ solve eqs0 = go eqs0 []
     
     go [] subs = return subs
     
-    go (Equation (Var (Meta x)) (Var (Meta y)):eqs) subs
+    go (Equation f (Var (Meta mxt x)) (Var (Meta myt y)):eqs) subs
       | x == y = go eqs subs
-      | otherwise = go eqs' subs'
+      | otherwise = case (f,mxt,myt) of
+          (False,Constraint,Constraint) -> throwError $ "Cannot unify " ++ show x ++ " with " ++ show y
+          _ -> go eqs' subs'
       where
-        newSubs = [(x, Var (Meta y))]
+        (x',y') = if mxt <= myt then (x,y) else (y,x)
+        newSubs = [(x', Var (Meta (max mxt myt) y'))]
         eqs' = map (substMetasEquation newSubs) eqs
         subs' = substMetasSubs newSubs (newSubs ++ subs)
-    
-    go (Equation v1@(Var (Meta x)) r:eqs) subs =
+
+    go (Equation False v1@(Var (Meta Constraint _)) r:_) _ =
+      throwError $ "Cannot unify " ++ pretty v1 ++ " with " ++ pretty r
+    go (Equation _ v1@(Var (Meta _ x)) r:eqs) subs =
       do unless (not (occurs x r))
            $ throwError $ "Cannot unify because " ++ pretty v1
                        ++ " occurs in " ++ pretty r
@@ -203,8 +209,10 @@ solve eqs0 = go eqs0 []
         newSubs = [(x,r)]
         eqs' = map (substMetasEquation newSubs) eqs
         subs' = substMetasSubs newSubs (newSubs ++ subs)
-    
-    go (Equation l v2@(Var (Meta y)):eqs) subs =
+
+    go (Equation False l v2@(Var (Meta Constraint _)):_) _ =
+      throwError $ "Cannot unify " ++ pretty l ++ " with " ++ pretty v2
+    go (Equation _ l v2@(Var (Meta _ y)):eqs) subs =
       do unless (not (occurs y l))
            $ throwError $ "Cannot unify because " ++ pretty v2
                        ++ " occurs in " ++ pretty l
@@ -214,16 +222,16 @@ solve eqs0 = go eqs0 []
         eqs' = map (substMetasEquation newSubs) eqs
         subs' = substMetasSubs newSubs (newSubs ++ subs)
     
-    go (Equation v1@(Var x) v2@(Var y):eqs) subs
+    go (Equation _ v1@(Var x) v2@(Var y):eqs) subs
       | x == y = go eqs subs
       | otherwise = throwError $ "Cannot unify variables " ++ pretty v1
                               ++ " and " ++ pretty v2
     
-    go (Equation (In l) (In r):eqs) subs =
-      do newEqs <- equate l r
+    go (Equation f (In l) (In r):eqs) subs =
+      do newEqs <- equate f l r
          go (newEqs ++ eqs) subs
     
-    go (Equation l r:_) _ =
+    go (Equation _ l r:_) _ =
       throwError $ "Cannot unify " ++ pretty l ++ " and " ++ pretty r
 
 
@@ -243,7 +251,7 @@ unify :: ( Eq a, Functor f, Foldable f, Pretty (ABT f)
 unify subsl ctxl l r =
   do newSubs <-
        catchError
-         (solve [Equation l r])
+         (solve [Equation True l r])
          (\e -> throwError $
                   "Could not unify "++ pretty l ++ " with " ++ pretty r
                     ++ ". " ++ e)
@@ -267,7 +275,7 @@ unifyJ :: ( Eq a, Functor f, Foldable f, Pretty (ABT f)
 unifyJ subsl ctxl l r =
   do newSubs <-
        catchError
-         (solve [Equation l r])
+         (solve [Equation True l r])
          (\e -> throwError $
                   "Could not unify "++ pretty l ++ " with " ++ pretty r
                     ++ ". " ++ e)

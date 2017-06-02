@@ -64,45 +64,45 @@ data TermF r
 
 
 instance Eq1 TermF where
-  eq1 (Defined n) (Defined n') =
+  liftEq _ (Defined n) (Defined n') =
     n == n'
-  eq1 (Ann m t) (Ann m' t') =
-    m == m' && t == t'
-  eq1 Type Type =
+  liftEq eq (Ann m t) (Ann m' t') =
+    eq m m' && eq t t'
+  liftEq _ Type Type =
     True
-  eq1 (Fun plic a sc) (Fun plic' a' sc') =
-    plic == plic' && a == a' && sc == sc'
-  eq1 (Lam plic sc) (Lam plic' sc') =
-    plic == plic' && sc == sc'
-  eq1 (App plic f x) (App plic' f' x') =
-    plic == plic' && f == f' && x == x'
-  eq1 (Con c ms) (Con c' ms') =
-    c == c' && ms == ms'
-  eq1 (Case ms motive clauses) (Case ms' motive' clauses') =
-    ms == ms' && eq1 motive motive'
+  liftEq eq (Fun plic a sc) (Fun plic' a' sc') =
+    plic == plic' && eq a a' && eq sc sc'
+  liftEq eq (Lam plic sc) (Lam plic' sc') =
+    plic == plic' && eq sc sc'
+  liftEq eq (App plic f x) (App plic' f' x') =
+    plic == plic' && eq f f' && eq x x'
+  liftEq eq (Con c ms) (Con c' ms') =
+    c == c' && liftEq (\(p,a) (p',a') -> p == p' && eq a a') ms ms'
+  liftEq eq (Case ms motive clauses) (Case ms' motive' clauses') =
+    liftEq eq ms ms' && liftEq eq motive motive'
       && length clauses == length clauses'
-      && all (uncurry eq1) (zip clauses clauses')
-  eq1 (RecordType fields tele) (RecordType fields' tele') =
-    fields == fields' && eq1 tele tele'
-  eq1 (RecordCon fs) (RecordCon fs') =
-    fs == fs'
-  eq1 (RecordProj m x) (RecordProj m' x') =
-    x == x' && m == m'
-  eq1 (QuotedType resets a) (QuotedType resets' a') =
-    resets == resets' && a == a'
-  eq1 (Quote m) (Quote m') =
-    m == m'
-  eq1 (Unquote m) (Unquote m') =
-    m == m'
-  eq1 (Continue m) (Continue m') =
-    m == m'
-  eq1 (Shift res m) (Shift res' m') =
-    res == res' && m == m'
-  eq1 (Reset res m) (Reset res' m') =
-    res == res' && m == m'
-  eq1 (Require a sc) (Require a' sc') =
-    a == a' && sc == sc'
-  eq1 _ _ =
+      && all (uncurry $ liftEq eq) (zip clauses clauses')
+  liftEq eq (RecordType fields tele) (RecordType fields' tele') =
+    fields == fields' && liftEq eq tele tele'
+  liftEq eq (RecordCon fs) (RecordCon fs') =
+    liftEq (\(n,a) (n',a') -> n == n' && eq a a') fs fs'
+  liftEq eq (RecordProj m x) (RecordProj m' x') =
+    x == x' && eq m m'
+  liftEq eq (QuotedType resets a) (QuotedType resets' a') =
+    resets == resets' && eq a a'
+  liftEq eq (Quote m) (Quote m') =
+    eq m m'
+  liftEq eq (Unquote m) (Unquote m') =
+    eq m m'
+  liftEq eq (Continue m) (Continue m') =
+    eq m m'
+  liftEq eq (Shift res m) (Shift res' m') =
+    res == res' && eq m m'
+  liftEq eq (Reset res m) (Reset res' m') =
+    res == res' && eq m m'
+  liftEq eq (Require a sc) (Require a' sc') =
+    eq a a' && eq sc sc'
+  liftEq _ _ _ =
     False
 
 
@@ -124,8 +124,8 @@ newtype CaseMotiveF r = CaseMotive (BindingTelescope r)
 
 
 instance Eq1 CaseMotiveF where
-  eq1 (CaseMotive tele) (CaseMotive tele') =
-    eq1 tele tele'
+  liftEq eq (CaseMotive tele) (CaseMotive tele') =
+    liftEq eq tele tele'
 
 
 type CaseMotive = CaseMotiveF (Scope TermF)
@@ -137,10 +137,10 @@ data ClauseF r
 
 
 instance Eq1 ClauseF where
-  eq1 (Clause ps sc) (Clause ps' sc') =
+  liftEq eq (Clause ps sc) (Clause ps' sc') =
     length ps == length ps'
-      && all (uncurry eq1) (zip ps ps')
-      && sc == sc'
+      && all (uncurry $ liftEq eq) (zip ps ps')
+      && eq sc sc'
 
 
 type Clause = ClauseF (Scope TermF)
@@ -172,15 +172,24 @@ data PatternFF a r
 
 
 instance Eq a => Eq1 (PatternFF a) where
-  eq1 (ConPat c ps) (ConPat c' ps') =
-    c == c' && ps == ps'
-  eq1 (AssertionPat m) (AssertionPat m') =
+  liftEq eq (ConPat c ps) (ConPat c' ps') =
+    c == c' && liftEq (\(p,a) (p',a') -> p == p' && eq a a') ps ps'
+  liftEq eq (AssertionPat m) (AssertionPat m') =
     m == m'
-  eq1 MakeMeta MakeMeta =
+  liftEq eq MakeMeta MakeMeta =
     True
-  eq1 _ _ =
+  liftEq eq _ _ =
     False
 
+instance Eq2 PatternFF where
+  liftEq2 eq eq' (ConPat c ps) (ConPat c' ps') =
+    c == c' && liftEq (\(p,a) (p',a') -> p == p' && eq' a a') ps ps'
+  liftEq2 eq eq' (AssertionPat m) (AssertionPat m') =
+    eq m m'
+  liftEq2 eq eq' MakeMeta MakeMeta =
+    True
+  liftEq2 _ _ _ _ =
+    False
 
 instance Bifunctor PatternFF where
   bimap _ g (ConPat s xs) = ConPat s [ (plic,g x) | (plic,x) <- xs ]
@@ -210,14 +219,15 @@ instance Bizippable PatternFF where
 
 
 instance Bitraversable PatternFF where
-  bisequenceA (ConPat c ps) =
-    ConPat c <$> sequenceA [ (,) plic <$> p
-                           | (plic,p) <- ps
-                           ]
-  bisequenceA (AssertionPat m) =
-    AssertionPat <$> m
-  bisequenceA MakeMeta =
-    pure MakeMeta
+  bitraverse f g = biseq . bimap f g where
+    biseq (ConPat c ps) =
+      ConPat c <$> sequenceA [ (,) plic <$> p
+                             | (plic,p) <- ps
+                             ]
+    biseq (AssertionPat m) =
+      AssertionPat <$> m
+    biseq MakeMeta =
+      pure MakeMeta
 
 
 -- | 'PatternF' is the type of pattern shaped containers for terms. The
@@ -229,7 +239,10 @@ newtype PatternF a = PatternF { unwrapPatternF :: Scope (PatternFF a) }
 
 
 instance Eq1 PatternF where
-  eq1 (PatternF x) (PatternF x') = x == x'
+  liftEq eq (PatternF x) (PatternF x') = eqScopes eq x x'
+    where
+      eqScopes :: (a -> b -> Bool) -> Scope (PatternFF a) -> Scope (PatternFF b) -> Bool
+      eqScopes eq' = liftScopeEq (liftABTEq $ liftEq2 eq' (eqScopes eq'))
 
 
 type Pattern = ABT (PatternFF Term)

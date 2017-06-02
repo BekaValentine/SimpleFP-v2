@@ -35,44 +35,44 @@ import Control.Monad.Except
 -- | Equating terms by trivial structural equations.
 
 instance MonadUnify TermF Elaborator where
-  equate (Defined n1) (Defined n2) =
+  equate _ (Defined n1) (Defined n2) =
     if n1 == n2
        then return []
        else throwError $ "Mismatching names "
                          ++ showName n1 ++ " and " ++ showName n2
-  equate (Ann m1 t1) (Ann m2 t2) =
-    return [ Equation (instantiate0 m1) (instantiate0 m2)
-           , Equation (instantiate0 t1) (instantiate0 t2)
+  equate f (Ann m1 t1) (Ann m2 t2) =
+    return [ Equation f (instantiate0 m1) (instantiate0 m2)
+           , Equation f (instantiate0 t1) (instantiate0 t2)
            ]
-  equate Type Type =
+  equate _ Type Type =
     return []
-  equate (Fun plic1 a1 sc1) (Fun plic2 a2 sc2) =
+  equate f (Fun plic1 a1 sc1) (Fun plic2 a2 sc2) =
     do unless (plic1 == plic2)
          $ throwError $ "Mismatching plicities when unifying "
              ++ pretty (In (Fun plic1 a1 sc1)) ++ " with "
              ++ pretty (In (Fun plic2 a2 sc2))
        ns <- freshRelTo (names sc1) context
        let xs = map (Var . Free) ns
-       return [ Equation (instantiate0 a1) (instantiate0 a2)
-              , Equation (instantiate sc1 xs) (instantiate sc2 xs)
+       return [ Equation f (instantiate0 a1) (instantiate0 a2)
+              , Equation f (instantiate sc1 xs) (instantiate sc2 xs)
               ]
-  equate (Lam plic1 sc1) (Lam plic2 sc2) =
+  equate f (Lam plic1 sc1) (Lam plic2 sc2) =
     do unless (plic1 == plic2)
          $ throwError $ "Mismatching plicities when unifying "
              ++ pretty (In (Lam plic1 sc1)) ++ " with "
              ++ pretty (In (Lam plic2 sc2))
        ns <- freshRelTo (names sc1) context
        let xs = map (Var . Free) ns
-       return [ Equation (instantiate sc1 xs) (instantiate sc2 xs) ]
-  equate (App plic1 f1 a1) (App plic2 f2 a2) =
+       return [ Equation f (instantiate sc1 xs) (instantiate sc2 xs) ]
+  equate _ (App plic1 f1 a1) (App plic2 f2 a2) =
     do unless (plic1 == plic2)
          $ throwError $ "Mismatching plicities when unifying "
              ++ pretty (In (App plic1 f1 a1)) ++ " with "
              ++ pretty (In (App plic2 f2 a2))
-       return [ Equation (instantiate0 f1) (instantiate0 f2)
-              , Equation (instantiate0 a1) (instantiate0 a2)
+       return [ Equation False (instantiate0 f1) (instantiate0 f2)
+              , Equation False (instantiate0 a1) (instantiate0 a2)
               ]
-  equate (Con c1 as1) (Con c2 as2) =
+  equate f (Con c1 as1) (Con c2 as2) =
     do unless (c1 == c2)
          $ throwError $ "Mismatching constructors "
                      ++ showName c1 ++ " and " ++ showName c2
@@ -87,10 +87,10 @@ instance MonadUnify TermF Elaborator where
              ++ pretty (In (Con c1 as1)) ++ " with "
              ++ pretty (In (Con c2 as2))
        return $ zipWith
-                  Equation
+                  (Equation f)
                   (map instantiate0 as1')
                   (map instantiate0 as2')
-  equate (Case as1 mot1 cs1) (Case as2 mot2 cs2) =
+  equate _ (Case as1 mot1 cs1) (Case as2 mot2 cs2) =
     do unless (length as1 == length as2)
          $ throwError $ "Mismatching number of case arguments in "
                      ++ pretty (In (Case as1 mot1 cs1)) ++ " and "
@@ -100,13 +100,13 @@ instance MonadUnify TermF Elaborator where
                      ++ pretty (In (Case as1 mot1 cs1)) ++ " and "
                      ++ pretty (In (Case as2 mot2 cs2))
        let argEqs = zipWith
-                      Equation
+                      (Equation False)
                         (map instantiate0 as1)
                         (map instantiate0 as2)
        motEqs <- equateCaseMotive mot1 mot2
        clauseEqs <- fmap concat $ zipWithM equateClause cs1 cs2
        return $ argEqs ++ motEqs ++ clauseEqs
-  equate (RecordType fields1 tele1) (RecordType fields2 tele2) =
+  equate f (RecordType fields1 tele1) (RecordType fields2 tele2) =
     do unless (fields1 == fields2)
          $ throwError $ "Record types have different field names: "
              ++ pretty (In (RecordType fields1 tele1))
@@ -121,8 +121,8 @@ instance MonadUnify TermF Elaborator where
              ++ pretty (In (RecordType fields1 tele1))
              ++ " and "
              ++ pretty (In (RecordType fields2 tele2))
-       return $ zipWith Equation as1 as2
-  equate (RecordCon fields1) (RecordCon fields2) =
+       return $ zipWith (Equation f) as1 as2
+  equate f (RecordCon fields1) (RecordCon fields2) =
     do unless (length fields1 == length fields2)
          $ throwError $ "Records have different number of fields: "
              ++ pretty (In (RecordCon fields1))
@@ -136,17 +136,17 @@ instance MonadUnify TermF Elaborator where
              ++ " and "
              ++ pretty (In (RecordCon fields2))
        return $ zipWith
-                  Equation
+                  (Equation f)
                   (map instantiate0 ms1)
                   (map instantiate0 ms2)
-  equate (RecordProj r1 x1) (RecordProj r2 x2) =
+  equate _ (RecordProj r1 x1) (RecordProj r2 x2) =
     do unless (x1 == x2)
          $ throwError $ "Record projections have different names: "
              ++ pretty (In (RecordProj r1 x1))
              ++ " and "
              ++ pretty (In (RecordProj r2 x2))
-       return [Equation (instantiate0 r1) (instantiate0 r2)]
-  equate l r =
+       return [Equation False (instantiate0 r1) (instantiate0 r2)]
+  equate _ l r =
     throwError $ "Cannot unify " ++ pretty (In l) ++ " with " ++ pretty (In r)
 
 
@@ -164,7 +164,7 @@ equateCaseMotive mot1@(CaseMotive tele1) mot2@(CaseMotive tele2) =
      unless (length as1 == length as2)
        $ throwError $ "Motives not equal: " ++ pretty mot1 ++ " and "
                    ++ pretty mot2
-     return $ zipWith Equation as1 as2 ++ [ Equation b1 b2 ]
+     return $ zipWith (Equation False) as1 as2 ++ [ Equation False b1 b2 ]
      
 
 
@@ -189,5 +189,5 @@ equateClause (Clause pscs1 sc1) (Clause pscs2 sc2) =
        Nothing ->
          throwError "Patterns are not equal."
        Just pEqss ->
-         return $ [ Equation a1 a2 | (a1,a2) <- concat pEqss ]
-               ++ [ Equation b1 b2 ]
+         return $ [ Equation False a1 a2 | (a1,a2) <- concat pEqss ]
+               ++ [ Equation False b1 b2 ]

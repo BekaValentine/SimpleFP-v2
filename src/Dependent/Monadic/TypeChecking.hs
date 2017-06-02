@@ -140,7 +140,7 @@ infer (Var (Bound _ _)) =
   error "A bound variable should never be the subject of type inference."
 infer (Var (Free x)) =
   typeInContext x
-infer (Var (Meta _)) =
+infer (Var (Meta _ _)) =
   error "Meta variables should not exist in this type checker."
 infer (In (Defined x)) =
   typeInDefinitions x
@@ -309,7 +309,7 @@ checkPattern (Var (Free x)) (NormalTerm t) =
          , Var (Free x)
          , []
          )
-checkPattern (Var (Meta _)) _ =
+checkPattern (Var (Meta _ _)) _ =
   error "Metavariables should not occur in this type checker."
 checkPattern (In (ConPat _ _)) (NormalTerm (In Type)) =
   throwError "Cannot pattern match on a type."

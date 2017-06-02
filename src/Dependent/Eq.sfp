@@ -1,0 +1,20 @@
+
+data Eq (a : Type) (x : a) (y : a) where
+| Refl (a : Type) (x : a) : Eq a x x
+end
+
+let inj :
+  (a : Type) ->
+  (b : Type) ->
+  (f : a -> b) ->
+  (x : a) ->
+  (y : a) ->
+  (eq : Eq b (f x) (f y)) ->
+  Eq a x y =
+  \a -> \b -> \f -> \x -> \y -> \eq ->
+  case y || eq
+  motive (y' : a) || (eq' : Eq b (f x) (f y')) || Eq a x y'
+  of
+  | .x || Refl .b .(f x) -> Refl a x
+  end
+end

@@ -163,7 +163,7 @@ inferify (Var (Free x)) =
      return  t
 inferify (Var (Bound _ _)) =
   error "Bound type variables should not be the subject of type checking."
-inferify (Var (Meta x)) =
+inferify (Var (Meta _ x)) =
   throwError $ "The metavariable " ++ show x
             ++ " appears in checkable code, when it should not."
 inferify (In (Defined x)) =
@@ -318,15 +318,15 @@ checkifyCaseMotive (CaseMotive tele) = checkifyTelescope tele
 
 checkifyPattern :: Pattern
                 -> NormalTerm
-                -> TypeChecker Term
+                -> TypeChecker (Term, [(Term,Term)])
 checkifyPattern (Var (Bound _ _)) _ =
   error "A bound variable should not be the subject of pattern type checking."
 
 checkifyPattern (Var (Free x)) t =
   do t' <- typeInContext x
      unifyHelper t (NormalTerm t')  -- @t'@ is guaranteed to be normal
-     return $ Var (Free x)
-checkifyPattern (Var (Meta _)) _ =
+     return (Var (Free x), [])
+checkifyPattern (Var (Meta _ _)) _ =
   error "Metavariables should not be the subject of pattern type checking."
 checkifyPattern (In (ConPat c ps)) t =
   do consig@(ConSig (BindingTelescope ascs _)) <- typeInSignature c
@@ -336,14 +336,15 @@ checkifyPattern (In (ConPat c ps)) t =
        $ throwError $ "The constructor " ++ c ++ " expects " ++ show lascs
                    ++ " " ++ (if lascs == 1 then "arg" else "args")
                    ++ " but was given " ++ show lps
-     (ms,ret) <- checkifyPatterns (map instantiate0 ps) consig
+     (ms,ret,cs) <- checkifyPatterns (map instantiate0 ps) consig
      subret <- substitute ret
      eret <- evaluate subret
      unifyHelper eret t
-     return $ conH c ms
+     return (conH c ms, cs)
 checkifyPattern (In (AssertionPat m)) t =
   do checkify m t
-     return m
+     mv <- nextElab nextMeta
+     return (Var $ Meta Constraint mv, [(Var $ Meta Constraint mv, m)])
 
 
 
@@ -365,19 +366,19 @@ checkifyPattern (In (AssertionPat m)) t =
 
 checkifyPatterns :: [Pattern]
                  -> ConSig
-                 -> TypeChecker ([Term], Term)
+                 -> TypeChecker ([Term], Term, [(Term, Term)])
 checkifyPatterns ps0 (ConSig (BindingTelescope ascs bsc)) =
-  do ms <- go [] ps0 ascs
-     return (ms, instantiate bsc ms)
+  do (ms, cs) <- go [] ps0 ascs
+     return (ms, instantiate bsc ms, cs)
   where
-    go :: [Term] -> [Pattern] -> [Scope TermF] -> TypeChecker [Term]
-    go _ [] [] = return []
+    go :: [Term] -> [Pattern] -> [Scope TermF] -> TypeChecker ([Term],[(Term, Term)])
+    go _ [] [] = return ([], [])
     go acc (p:ps) (sc:scs) =
       do subt <- substitute (instantiate sc acc)
          et <- evaluate subt
-         m <- checkifyPattern p et
-         ms <- go (acc ++ [m]) ps scs
-         return $ m:ms
+         (m, cs) <- checkifyPattern p et
+         (ms, cs') <- go (acc ++ [m]) ps scs
+         return (m:ms, cs ++ cs')
     go _ _ _ =
       error $ "The auxiliary function 'go' in 'checkPatterns' should always"
            ++ " have equal number of args for its patterns and scopes. This"
@@ -404,21 +405,34 @@ checkifyPatternsCaseMotive :: [Pattern]
                            -> CaseMotive
                            -> TypeChecker Term
 checkifyPatternsCaseMotive ps0 (CaseMotive (BindingTelescope ascs bsc)) =
-  do ms <- go [] ps0 ascs
+  do (ms, cs) <- go [] ps0 ascs
+     forM_ cs (\(l,r) -> do
+                  subl <- substitute l
+                  el <- evaluate subl
+                  subr <- substitute r
+                  er <- evaluate subr
+                  s <- getElab substitution
+                  unifyHelper el er
+                  s' <- getElab substitution
+                  when (length s /= length s') $
+                    throwError $ "Solving the constraint "
+                    ++ pretty (normTerm el) ++ " == "
+                    ++ pretty (normTerm er) ++ " produced new metavar resolution"
+              )
      return $ instantiate bsc ms
   where
     go :: [Term]
        -> [Pattern]
        -> [Scope TermF]
-       -> TypeChecker [Term]
+       -> TypeChecker ([Term], [(Term, Term)])
     go _ [] [] =
-      return []
+      return ([], [])
     go acc (p:ps) (sc:scs) =
       do subt <- substitute (instantiate sc acc)
          et <- evaluate subt
-         m <- checkifyPattern p et
-         ms <- go (acc ++ [m]) ps scs
-         return $ m:ms
+         (m,cs) <- checkifyPattern p et
+         (ms,cs') <- go (acc ++ [m]) ps scs
+         return (m:ms, cs ++ cs')
     go _ _ _ =
       error $ "The auxiliary function 'go' in 'checkPatternsCaseMotive'"
            ++ " should always have equal number of args for its patterns and"
@@ -451,7 +465,7 @@ checkifyClause (Clause pscs sc) mot@(CaseMotive (BindingTelescope ascs _)) =
          xs2 = map (Var . Free) ns
      ctx' <- forM ns $ \n ->
                do m <- nextElab nextMeta
-                  return (n, Var (Meta m))
+                  return (n, Var (Meta Exist m))
      extendElab context ctx' $
        do ret <- checkifyPatternsCaseMotive
                    (map (\psc -> patternInstantiate psc xs1 xs2)

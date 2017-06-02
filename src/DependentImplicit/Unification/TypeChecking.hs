@@ -194,7 +194,7 @@ inferify (Var (Free x)) =
      return (ElaboratedTerm (Var (Free x)), t)
 inferify (Var (Bound _ _)) =
   error "Bound type variables should not be the subject of type checking."
-inferify (Var (Meta x)) =
+inferify (Var (Meta _ x)) =
   throwError $ "The metavariable " ++ show x
             ++ " appears in checkable code, when it should not."
 inferify (In (Defined x)) =
@@ -305,8 +305,8 @@ inferifyApplication f (In (Fun Expl _ _)) Impl m =
     ++ pretty (appH Impl f m)
 inferifyApplication f (In (Fun Impl _ sc)) Expl m =
   do meta <- nextElab nextMeta
-     let f' = appH Impl f (Var (Meta meta))
-         t' = instantiate sc [Var (Meta meta)]
+     let f' = appH Impl f (Var (Meta Exist meta))
+         t' = instantiate sc [Var (Meta Exist meta)]
      inferifyApplication  f' t' Expl m
 inferifyApplication f _ _ _ =
   throwError $ "Cannot apply non-function: " ++ pretty f
@@ -363,7 +363,7 @@ inferifyConArgs ascs0 bsc0 ms0 = go [] ascs0 bsc0 ms0
          go (acc ++ [(Impl,m')]) ascs bsc ms
     go acc ((Impl,_):ascs) bsc ms =
       do meta <- nextElab nextMeta
-         go (acc ++ [(Impl,Var (Meta meta))]) ascs bsc ms
+         go (acc ++ [(Impl,Var (Meta Exist meta))]) ascs bsc ms
     go _ _ _ _ =
       throwError "Cannot match signature."
 
@@ -576,7 +576,7 @@ checkifyConArgs ascs0 bsc ms0 t =
       return acc
     accArgsToCheck acc ((Expl,asc):ascs) ((Expl,m):ms) =
       do meta <- nextElab nextMeta
-         let x = Var (Meta meta)
+         let x = Var (Meta Exist meta)
              xs = [ x' | (_,_,x',_) <- acc ]
              newSuspension = (Expl, Just m, x, instantiate asc xs)
          accArgsToCheck
@@ -585,7 +585,7 @@ checkifyConArgs ascs0 bsc ms0 t =
            ms
     accArgsToCheck acc ((Impl,asc):ascs) ((Impl,m):ms) =
       do meta <- nextElab nextMeta
-         let x = Var (Meta meta)
+         let x = Var (Meta Exist meta)
              xs = [ x' | (_,_,x',_) <- acc ]
              newSuspension = (Impl, Just m, x, instantiate asc xs)
          accArgsToCheck
@@ -594,7 +594,7 @@ checkifyConArgs ascs0 bsc ms0 t =
            ms
     accArgsToCheck acc ((Impl,asc):ascs) ms =
       do meta <- nextElab nextMeta
-         let x = Var (Meta meta)
+         let x = Var (Meta Exist meta)
              xs = [ x' | (_,_,x',_) <- acc ]
              newSuspension = (Impl, Nothing, x, instantiate asc xs)
          accArgsToCheck
@@ -607,12 +607,12 @@ checkifyConArgs ascs0 bsc ms0 t =
     swapMetas :: [(Plicity,Term)]
               -> TypeChecker ([(Term,Term)], [(Plicity,Term)])
     swapMetas [] = return ([],[])
-    swapMetas ((plic, Var (Meta meta)):ms) =
+    swapMetas ((plic, Var (Meta Exist meta)):ms) =
       do (eqs,ms') <- swapMetas ms
-         return (eqs, (plic,Var (Meta meta)):ms')
+         return (eqs, (plic,Var (Meta Exist meta)):ms')
     swapMetas ((plic,m):ms) =
       do meta <- nextElab nextMeta
-         let x = Var (Meta meta)
+         let x = Var (Meta Exist meta)
          (eqs,ms') <- swapMetas ms
          return ((x,m):eqs, (plic,x):ms')
      
@@ -668,7 +668,7 @@ checkifyCaseMotive (CaseMotive tele) =
 
 checkifyPattern :: Pattern
                 -> NormalTerm
-                -> TypeChecker (Pattern,ElaboratedTerm)
+                -> TypeChecker (Pattern,ElaboratedTerm,[(Term,Term)])
 checkifyPattern (Var (Bound _ _)) _ =
   error "A bound variable should not be the subject of pattern type checking."
 checkifyPattern (Var (Free x)) t =
@@ -676,14 +676,15 @@ checkifyPattern (Var (Free x)) t =
      unifyHelper t (NormalTerm t')  -- @t'@ is guaranteed to be normal
      return ( Var (Free x)
             , ElaboratedTerm (Var (Free x))
+            , []
             )
-checkifyPattern (Var (Meta _)) _ =
+checkifyPattern (Var (Meta _ _)) _ =
   error "Metavariables should not be the subject of pattern type checking."
 checkifyPattern (In (ConPat _ _)) (NormalTerm (In Type)) =
   throwError "Cannot pattern match on a type."
 checkifyPattern (In (ConPat c ps)) (NormalTerm t) =
   do ConSig plics (BindingTelescope ascs bsc) <- typeInSignature c
-     (ps',elms') <-
+     (ps',elms',cs) <-
        checkifyPatterns
          (zip plics ascs)
          bsc
@@ -692,17 +693,21 @@ checkifyPattern (In (ConPat c ps)) (NormalTerm t) =
      let ms' = [ (plic,m') | (plic, ElaboratedTerm m') <- elms' ]
      return ( conPatH c ps'
             , ElaboratedTerm (conH c ms')
+            , cs
             )
 checkifyPattern (In (AssertionPat m)) t =
   do ElaboratedTerm m' <- checkify m t
+     mv <- nextElab nextMeta
      return ( In (AssertionPat m')
-            , ElaboratedTerm m'
+            , ElaboratedTerm (Var $ Meta Constraint mv)
+            , [(Var $ Meta Constraint mv, m')]
             )
 checkifyPattern (In MakeMeta) _ =
   do meta <- nextElab nextMeta
-     let x = Var (Meta meta)
+     let x = Var (Meta Exist meta)
      return ( In (AssertionPat x)
             , ElaboratedTerm x
+            , []
             )
 
 
@@ -741,6 +746,7 @@ checkifyPatterns :: [(Plicity,Scope TermF)]
                  -> Term
                  -> TypeChecker ( [(Plicity,Pattern)]
                                 , [(Plicity,ElaboratedTerm)]
+                                , [(Term,Term)]
                                 )
 checkifyPatterns ascs0 bsc ps0 t =
   do argsToCheck <- accArgsToCheck [] ascs0 ps0
@@ -754,33 +760,36 @@ checkifyPatterns ascs0 bsc ps0 t =
               return (eqs,ret')
          ret' -> return ([],ret')
      unifyHelper (NormalTerm ret') (NormalTerm t)
-     psms' <- forM argsToCheck $ \(plic,p0,mToElabInto,a) ->
+     (ps',ms',cs) <- unzip3 <$> forM argsToCheck (\(plic,p0,mToElabInto,a) ->
                 case p0 of
                   Nothing ->
                     do subMToElabInto <- substitute mToElabInto
                        em' <- evaluate subMToElabInto
                        return ( (plic, In (AssertionPat (normTerm em')))
                               , (plic, ElaboratedTerm (normTerm em'))
+                              , []
                               )
                   Just p ->
                     do subMToElabInto <- substitute mToElabInto
                        eMToElabInto <- evaluate subMToElabInto
                        suba <- substitute a
                        ea <- evaluate suba
-                       (p',ElaboratedTerm m') <- checkifyPattern p ea
+                       (p',ElaboratedTerm m',cs) <- checkifyPattern p ea
                        subm' <- substitute m'
                        em' <- evaluate subm'
                        unifyHelper eMToElabInto em'
                        return ( (plic, p')
                               , (plic, ElaboratedTerm (normTerm em'))
+                              , cs
                               )
+                                                 )
      forM_ eqs $ \(l,r) ->
        do subl <- substitute l
           el <- evaluate subl
           subr <- substitute r
           er <- evaluate subr
           unifyHelper el er
-     return $ unzip psms'
+     return (ps',ms',concat cs)
   where
     accArgsToCheck :: [(Plicity,Maybe Pattern,Term,Term)]
                    -> [(Plicity,Scope TermF)]
@@ -790,7 +799,7 @@ checkifyPatterns ascs0 bsc ps0 t =
       return acc
     accArgsToCheck acc ((Expl,asc):ascs) ((Expl,p):ps) =
       do meta <- nextElab nextMeta
-         let x = Var (Meta meta)
+         let x = Var (Meta Exist meta)
              xs = [ x' | (_,_,x',_) <- acc ]
              newSuspension = (Expl, Just p, x, instantiate asc xs)
          accArgsToCheck
@@ -799,7 +808,7 @@ checkifyPatterns ascs0 bsc ps0 t =
            ps
     accArgsToCheck acc ((Impl,asc):ascs) ((Impl,p):ps) =
       do meta <- nextElab nextMeta
-         let x = Var (Meta meta)
+         let x = Var (Meta Exist meta)
              xs = [ x' | (_,_,x',_) <- acc ]
              newSuspension = (Impl, Just p, x, instantiate asc xs)
          accArgsToCheck
@@ -808,7 +817,7 @@ checkifyPatterns ascs0 bsc ps0 t =
            ps
     accArgsToCheck acc ((Impl,asc):ascs) ps =
       do meta <- nextElab nextMeta
-         let x = Var (Meta meta)
+         let x = Var (Meta Exist meta)
              xs = [ x' | (_,_,x',_) <- acc ]
              newSuspension = (Impl, Nothing, x, instantiate asc xs)
          accArgsToCheck
@@ -821,12 +830,12 @@ checkifyPatterns ascs0 bsc ps0 t =
     swapMetas :: [(Plicity,Term)]
               -> TypeChecker ([(Term,Term)], [(Plicity,Term)])
     swapMetas [] = return ([],[])
-    swapMetas ((plic, Var (Meta meta)):ms) =
+    swapMetas ((plic, Var (Meta Exist meta)):ms) =
       do (eqs,ms') <- swapMetas ms
-         return (eqs, (plic,Var (Meta meta)):ms')
+         return (eqs, (plic,Var (Meta Exist meta)):ms')
     swapMetas ((plic,m):ms) =
       do meta <- nextElab nextMeta
-         let x = Var (Meta meta)
+         let x = Var (Meta Exist meta)
          (eqs,ms') <- swapMetas ms
          return ((x,m):eqs, (plic,x):ms')
 
@@ -852,21 +861,34 @@ checkifyPatternsCaseMotive :: [Pattern]
                            -> CaseMotive
                            -> TypeChecker ([Pattern], ElaboratedTerm)
 checkifyPatternsCaseMotive ps0 (CaseMotive (BindingTelescope ascs bsc)) =
-  do (ps',ms') <- go [] ps0 ascs
+  do (ps',ms',cs) <- go [] ps0 ascs
+     forM_ cs (\(l,r) -> do
+                  subl <- substitute l
+                  el <- evaluate subl
+                  subr <- substitute r
+                  er <- evaluate subr
+                  s <- getElab substitution
+                  unifyHelper el er
+                  s' <- getElab substitution
+                  when (length s /= length s') $
+                    throwError $ "Solving the constraint "
+                    ++ pretty (normTerm el) ++ " == "
+                    ++ pretty (normTerm er) ++ " produced new metavar resolution"
+              )
      return (ps', ElaboratedTerm (instantiate bsc ms'))
   where
     go :: [Term]
        -> [Pattern]
        -> [Scope TermF]
-       -> TypeChecker ([Pattern],[Term])
+       -> TypeChecker ([Pattern],[Term],[(Term,Term)])
     go _ [] [] =
-      return ([],[])
+      return ([],[],[])
     go acc (p:ps) (sc:scs) =
       do subt <- substitute (instantiate sc acc)
          et <- evaluate subt
-         (p',ElaboratedTerm m') <- checkifyPattern p et
-         (ps',ms') <- go (acc ++ [m']) ps scs
-         return (p':ps', m':ms')
+         (p',ElaboratedTerm m',cs) <- checkifyPattern p et
+         (ps',ms',cs') <- go (acc ++ [m']) ps scs
+         return (p':ps', m':ms', cs ++ cs')
     go _ _ _ =
       error $ "The auxiliary function 'go' in 'checkPatternsCaseMotive'"
            ++ " should always have equal number of args for its patterns and"
@@ -899,7 +921,7 @@ checkifyClause (Clause pscs sc) mot@(CaseMotive (BindingTelescope ascs _)) =
          xs2 = map (Var . Free) ns
      ctx' <- forM ns $ \n ->
                do m <- nextElab nextMeta
-                  return (n, Var (Meta m))
+                  return (n, Var (Meta Exist m))
      extendElab context ctx' $
        do (ps',ElaboratedTerm ret) <-
             checkifyPatternsCaseMotive
